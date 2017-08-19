@@ -1,0 +1,7 @@
+/.ruby-gemset
+/.ruby-version
+/_*/
+/Gemfile.lock
+/README.html
+/asciidoctor-epub3.jar
+/pkg/

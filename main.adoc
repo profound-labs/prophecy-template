@@ -1,0 +1,35 @@
+= Book Title
+The Author
+v1.0, 2017-08-19
+:booktitle: Book Title
+:revdate: 2017-08-19
+:description: Book Subtitle
+:doctype: book
+:creator: {author}
+:lang: en
+//:keywords: subject, topic
+:copyright: CC-BY-NC-ND 4.0
+:isbn: 000-0-00000-000-0
+:imagesdir: assets/photos/ebook-92dpi-sRGB
+:includes: manuscript/asciidoc
+:front-cover-image: image:desktop-cover.png[Front Cover,800,1200]
+:toc: left
+:toc-title: Contents
+:toclevels: 0
+
+include::{includes}/dedication.adoc[]
+
+include::{includes}/foreword.adoc[]
+
+include::{includes}/preface.adoc[]
+
+include::{includes}/titlepage.adoc[]
+
+include::{includes}/01-chapter-one.adoc[]
+
+include::{includes}/02-chapter-two.adoc[]
+
+include::{includes}/glossary.adoc[]
+
+include::{includes}/copyright.adoc[]
+

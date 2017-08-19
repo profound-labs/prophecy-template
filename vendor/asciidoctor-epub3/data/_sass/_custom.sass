@@ -1,0 +1,145 @@
+// === Custom style additions ===
+
+// FIXME doesn't seem to work
+// /*
+//  *Use darker font color on e-ink devices (Kindle Paperwhite)
+//  *https://github.com/asciidoctor/asciidoctor-epub3/issues/67
+// /* Use dark fonts on Kindle Paperwhite
+// @media amzn-kf8 and (device-height: 1024px) and (device-width: 758px), amzn-kf8 and (device-height: 758px) and (device-width: 1024px)
+//   body
+//     p, a:link
+//       color: #000000
+//
+//   ul, ol, li, dl, dt, dd, footer, div.verse .attribution
+//     color: #000000
+//
+//   table.table
+//     th, td
+//       color: #000000
+//
+//   div.abstract > p, figcaption, caption, h1, h2, h3, h4, h5
+//     color: #000000
+//
+//   body a:link
+//     -webkit-text-fill-color: #000000
+//
+//   .chapter-header
+//     background-color: #191918
+
+.is-kf8,
+.is-mobi7,
+.is-paperwhite,
+.is-not-paperwhite
+  display: none
+
+@media amzn-mobi
+  .is-mobi7
+    display: block
+
+@media amzn-kf8
+  .is-kf8
+    display: block
+
+@media amzn-kf8 and (device-height: 1024px) and (device-width: 758px), amzn-kf8 and (device-height: 758px) and (device-width: 1024px)
+  .is-paperwhite
+    display: block
+
+@media amzn-kf8 and (device-height: 800px) and (device-width: 600px), amzn-kf8 and (device-height: 600px) and (device-width: 800px)
+  .is-not-paperwhite
+    display: block
+
+.black-100
+  color: #000000
+
+.black-90
+  color: #1B1B1B
+
+.black-80
+  color: #343434
+
+.black-70
+  color: #4D4D4D
+
+.black-60
+  color: #666666
+
+.black-50
+  color: #818181
+
+.black-40
+  color: #999999
+
+.black-30
+  color: #B4B4B4
+
+.black-20
+  color: #CCCCCC
+
+.black-10
+  color: #E7E7E7
+
+.black-00
+  color: #FFFFFF
+
+section
+  &#dedication > header h1,
+  &#acknowledgements > header h1
+    font-family: $section-font !important
+    font-style: normal
+    font-size: 12pt
+    margin-top: 0pt
+    text-transform: uppercase
+
+  &#abbreviations
+    > header h1
+      font-family: $section-font !important
+      font-style: normal
+      font-size: 12pt
+      margin-top: 0pt
+      text-transform: uppercase
+
+    .chapter-header
+      margin-bottom: 1em
+
+    table.table td
+      line-height: 1.2
+      padding: 0.2em 0.5em 0.2em 0.1em
+
+  &#appendix-thai
+    .table em
+      font-family: "Kinnari"
+      font-style: normal
+      font-weight: normal
+
+  // title page header
+  &#stillness-flowing
+    .subtitle
+      margin: 0
+    > header h1
+      text-align: center
+
+#titlepage-description
+  text-align: center
+
+.titlepage-author
+  text-align: center
+  margin-top: 8em
+
+.blockquote.lpchah blockquote p
+  font-style: normal
+
+.blockquote.quote blockquote p
+  font-style: italic
+
+// NOTE: line-height must be relative value. 0pt is an absolute value and triggers warnings from kindlegen:
+// Absolute value specified for CSS property in content is not supported by Kindle readers. Please use % or refer Kindle Publishing Guidelines about usage of property: 'line-height'
+
+// we want this to not take up any space, but "display: none" can disable the anchor linking behaviour
+.top-anchor
+  font-size: 0pt
+  line-height: 0
+  margin: 0pt
+  padding: 0pt
+
+nav#guide
+  display: none
