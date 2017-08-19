@@ -1,4 +1,4 @@
-Prophecy Title
+Prophecy LaTeX Book Template
 ==============
 
 *Prophecy Subtitle*
