@@ -137,6 +137,7 @@
 % Define text colors as Gray color values.
 \definecolor{textbody}{gray}{0.05}% 95% is good for contrast, on yellowish paper it is not harsh.
 \definecolor{footnoterule}{gray}{0.5}
+\definecolor{header}{gray}{0.2}
 \definecolor{footer}{gray}{0.2}
 \definecolor{chapternum}{gray}{0.8}
 \definecolor{chaptertitle}{gray}{0.2}
@@ -186,7 +187,7 @@
 
 % header and footer
 
-\newcommand\headerFont\gentiumFont
+\newcommand\headerFont\crimsonRomanFont
 \newcommand\footerFont\gentiumFont
 \newcommand\pageNumFont\gentiumFont
 
@@ -194,9 +195,9 @@
 
 \newcommand\partTitleFont\crimsonRomanFont
 
-\newcommand\chapterNameFont{}
+\newcommand\chapterNameFont\crimsonRomanFont
 \newcommand\chapterTitleFont\crimsonRomanFont
-\newcommand\chapterNumberFont{}
+\newcommand\chapterNumberFont\crimsonRomanFont
 \newcommand\chapterAuthorFont\crimsonRomanFont
 \newcommand\chapterNoteFont\crimsonRomanFont
 
@@ -214,7 +215,7 @@
 \newcommand{\chapterNumberSize}
   {\@setfontsize\chapterNumberSize{22}{24}}
 \newcommand{\chapterTitleSize}
-  {\@setfontsize\chapterTitleSize{26}{30}}
+  {\@setfontsize\chapterTitleSize{13}{16.5}}
 \newcommand{\chapterTitleFootnoteSize}
   {\@setfontsize\chapterTitleFootnoteSize{16}{30}}
 \newcommand{\chapterAuthorSize}
@@ -245,7 +246,7 @@
 \RequirePackage[final,babel=true]{microtype}
 
 % Tracking for uppercase section heading
-%\SetTracking[spacing={400,100,}]{encoding=*, family={FontinSansX-Regular.otf}}{20}
+\SetTracking[spacing={400,100,}]{encoding=*, family={Crimson-Roman.otf}}{20}
 
 % === hyperref ===
 
@@ -796,10 +797,21 @@ philo-sophical munindo amaravati thai-land}
   \hspace{6pt}%
 }
 \makepagestyle{topbottomcentered}
-\makeevenhead{topbottomcentered}{}{\textit{\rightmark}}{}
-\makeevenfoot{topbottomcentered}{}{\thepage}{}
-\makeoddhead{topbottomcentered}{}{\textit{\leftmark}}{}
-\makeoddfoot{topbottomcentered}{}{\thepage}{}
+\makeevenhead{topbottomcentered}{}{\headerFont\headerSize\color{header}\textit{\thetitle}}{}
+\makeevenfoot{topbottomcentered}{}{\footerFont\footerSize\color{footer}\thepage}{}
+\makeoddhead{topbottomcentered}{}{\headerFont\headerSize\color{header}\textit{\leftmark}}{}
+\makeoddfoot{topbottomcentered}{}{\footerFont\footerSize\color{footer}\thepage}{}
+\makepsmarks{topbottomcentered}{%
+  \nouppercaseheads
+  \createmark{chapter}{left}{nonumber}{}{}
+  \createmark{section}{right}{nonumber}{}{}
+  \createplainmark{toc}{both}{\contentsname}
+  \createplainmark{lof}{both}{\listfigurename}
+  \createplainmark{lot}{both}{\listtablename}
+  \createplainmark{bib}{both}{\bibname}
+  \createplainmark{index}{both}{\indexname}
+  \createplainmark{glossary}{both}{\glossaryname}
+}
 
 \makepagestyle{bottomcorner}
 \makeevenhead{bottomcorner}{}{}{}
@@ -818,14 +830,12 @@ philo-sophical munindo amaravati thai-land}
 \makepagestyle{bottomcenter}
 \makeevenhead{bottomcenter}{}{}{}
 \makeevenfoot{bottomcenter}{}{%
-  \vspace*{5pt}%
   \footerFont\footerSize%
   \color{footer}%
   \thepage%
 }{}
 \makeoddhead{bottomcenter}{}{}{}
 \makeoddfoot{bottomcenter}{}{%
-  \vspace*{5pt}%
   \footerFont\footerSize%
   \color{footer}%
   \thepage%
@@ -833,8 +843,9 @@ philo-sophical munindo amaravati thai-land}
 
 % alias the pagestyles into semantic names, "where it is used"
 
-\aliaspagestyle{normalpage}{bottomcorner}
+\aliaspagestyle{normalpage}{topbottomcentered}
 \aliaspagestyle{chapter}{bottomcenter}
+\aliaspagestyle{book}{empty}
 \aliaspagestyle{part}{empty}
 \aliaspagestyle{afterpart}{empty}
 
@@ -842,16 +853,16 @@ philo-sophical munindo amaravati thai-land}
 
 % === TOC settings ===
 
-\maxtocdepth{section}
+\maxtocdepth{chapter}
 
 % the right TOC margin
 \contentsmargin{-5pt}
 
 \newlength\tocLeftWidth
-\setlength\tocLeftWidth{0.5in}% Same as \chaptindent in mintaka chapterstyle.
+\setlength\tocLeftWidth{10mm}
 
-% Roman numerals in the TOC chapter entries.
-\renewcommand\thechapter{\Roman{chapter}}
+% Roman numerals in the chapter title TOC chapter entries.
+%\renewcommand\thechapter{\Roman{chapter}}
 
 % Fixes Undefined control sequence error for \@chapapp@head
 \renewcommand\chapternumberline[1]{\numberline{#1}}
@@ -896,38 +907,23 @@ philo-sophical munindo amaravati thai-land}
 % vspace. How to add it only before a Part that follows a Chapter?
 
 \titlecontents{part}[\tocLeftWidth]
-{\addvspace{20pt}%
-\normalsize\tocFont}%
+{\addvspace{25pt}%
+\fontsize{11}{11}\crimsonRomanFont\selectfont}%
 {%
   \contentsmargin{0pt}%
-  \makebox[0pt][r]{%
-  {\color{tocleftsidepart}\partname~\thecontentslabel}%
-  \hspace*{0.5em}$\cdot$\hspace*{0.5em}}%
+  \thecontentslabel.\space
+  \hspace*{1em}%
+  \MakeUppercase
 }
 {\contentsmargin{0pt}}
-{\hfill\normalsize\tocFont\thecontentspage}
-[\addvspace{5pt}]
+{}
 
 \titlecontents{chapter}[\tocLeftWidth]
-{\addvspace{12pt}\fontsize{13}{13}\crimsonRomanFont\bfseries\selectfont}%
-{%
-  \contentsmargin{0pt}%
-  \makebox[0pt][r]{%
-    {\color{tocleftside}%
-    {\tocFont\thecontentslabel}}%
-    \hspace*{0.5em}$\cdot$\hspace*{0.5em}%
-  }%
-}
+{\addvspace{15pt}\fontsize{13}{13}\gentiumFont\selectfont}%
+{\contentsmargin{0pt}}
 {\contentsmargin{0pt}%
 \itshape}
-{\enspace\hfill\normalsize\tocFont\thecontentspage}
-
-\titlecontents*{section}[\tocLeftWidth]
-{\filright\contentsmargin{1.5pc}\fontsize{10.5}{16}\tocFontOldNum\selectfont}
-{}
-{}
-{, \thecontentspage}
-[\hspace*{4pt}$\cdot$\hspace*{4pt}][.]
+{\hfill\normalsize\tocFont\thecontentspage}
 
 \titlecontents{appendix}[\tocLeftWidth]
 {\addvspace{30pt}\fontsize{13}{13}\crimsonRomanFont\bfseries\selectfont}%
@@ -1010,7 +1006,7 @@ philo-sophical munindo amaravati thai-land}
 
 % === Chapter styles ===
 
-\setsecnumdepth{section}
+\setsecnumdepth{chapter}
 
 % define chapter styles with "fantasy" names
 
@@ -1102,7 +1098,14 @@ philo-sophical munindo amaravati thai-land}
 \makechapterstyle{hightitle}{
   \chapterstyle{lowtitle}
   \setlength{\beforechapskip}{0pt}
-  \setlength{\chapterTitleLeftSkip}{6pc}
+  \setlength{\chapterTitleLeftSkip}{0pt}
+  \renewcommand*\printchaptertitle[1]{%
+    {%
+      \centering\chaptitlefont\color{chaptertitle}%
+      \textls*{\MakeUppercase{##1}}%
+      \par
+    }%
+  }
 }
 
 \makechapterstyle{bellatrix}{%
@@ -1441,12 +1444,13 @@ philo-sophical munindo amaravati thai-land}
 % Commands to assign the chapter styles to book parts. Use \renewcommand
 % to adjust.
 
-\createmark{chapter}{left}{nonumber}{}{}
+% No numbers in chapter mark
+%\createmark{chapter}{left}{nonumber}{}{}
 
-\newcommand\frontmatterChapterStyle{\chapterstyle{mintaka}}% or hightitle
-\newcommand\mainmatterChapterStyle{\chapterstyle{mintaka}}% or lowtitle
-\newcommand\appendixChapterStyle{\chapterstyle{mintaka-backmatter}}% or hightitle
-\newcommand\backmatterChapterStyle{\chapterstyle{mintaka-backmatter}}% or hightitle
+\newcommand\frontmatterChapterStyle{\chapterstyle{hightitle}}
+\newcommand\mainmatterChapterStyle{\chapterstyle{lowtitle}}
+\newcommand\appendixChapterStyle{\chapterstyle{hightitle}}
+\newcommand\backmatterChapterStyle{\chapterstyle{hightitle}}
 
 % append them to the macros
 \addtodef{\frontmatter}{}{\frontmatterChapterStyle}
@@ -1477,11 +1481,11 @@ philo-sophical munindo amaravati thai-land}
 \setaftersubsubsecskip{2.3ex}
 
 % Roman numerals for section numbering.
-\renewcommand*{\thesection}{\roman{section}}
-\setsechook{\setsecnumformat{\thesection.\space}}
+%\renewcommand*{\thesection}{\roman{section}}
+%\setsechook{\setsecnumformat{\thesection.\space}}
 
 \newcommand\sectionFmt[1]{%
-  \sectionFont\fontsize{12}{15}\selectfont%
+  \sectionFont\fontsize{11.5}{14}\selectfont%
   \color{section}%
   \centering
   \textls{\MakeUppercase{#1}}%
