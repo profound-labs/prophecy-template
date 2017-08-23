@@ -128,6 +128,7 @@
 \RequirePackage{titletoc}
 \RequirePackage{enumitem}
 \RequirePackage{longtable}
+\RequirePackage{environ}
 
 \RequirePackage{tikz}
 \usetikzlibrary{positioning}
@@ -203,6 +204,10 @@
 
 \newcommand\sectionFont\crimsonRomanFont
 
+% quote
+
+\newcommand\sideruleQuoteFont\crimsonRomanFont
+
 % toc
 
 \newcommand\tocFont\crimsonRomanFont
@@ -210,30 +215,18 @@
 
 % Some default font sizes, use \renewcommand to adjust
 
-\newcommand{\chapterNameSize}
-  {\@setfontsize\chapterNameSize{22}{24}}
-\newcommand{\chapterNumberSize}
-  {\@setfontsize\chapterNumberSize{22}{24}}
-\newcommand{\chapterTitleSize}
-  {\@setfontsize\chapterTitleSize{13}{16.5}}
-\newcommand{\chapterTitleFootnoteSize}
-  {\@setfontsize\chapterTitleFootnoteSize{16}{30}}
-\newcommand{\chapterAuthorSize}
-  {\@setfontsize\chapterAuthorSize{12}{14}}
-\newcommand{\chapterNoteSize}
-  {\@setfontsize\chapterNoteSize{13}{15}}
-\newcommand{\footerSize}
-  {\@setfontsize\footerSize{10.5}{10.5}}
-\newcommand{\headerSize}
-  {\@setfontsize\headerSize{10}{10}}
-%\newcommand{\pageNumSize}
-%  {\@setfontsize\pageNumSize{10}{12}}
+\newcommand{\chapterNameSize}{\@setfontsize          \chapterNameSize          {22}{24}}
+\newcommand{\chapterNumberSize}{\@setfontsize        \chapterNumberSize        {22}{24}}
+\newcommand{\chapterTitleSize}{\@setfontsize         \chapterTitleSize         {13}{16.5}}
+\newcommand{\chapterTitleFootnoteSize}{\@setfontsize \chapterTitleFootnoteSize {16}{30}}
+\newcommand{\chapterAuthorSize}{\@setfontsize        \chapterAuthorSize        {12}{14}}
+\newcommand{\chapterNoteSize}{\@setfontsize          \chapterNoteSize          {13}{15}}
+\newcommand{\footerSize}{\@setfontsize               \footerSize               {10.5}{10.5}}
+\newcommand{\headerSize}{\@setfontsize               \headerSize               {10}{10}}
 
-\newcommand{\smaller}
-  {\@setfontsize\smaller{9}{11}}
+\newcommand{\smaller}{\@setfontsize\smaller{9}{11}}
 
-\newcommand{\copyrightsize}
-  {\@setfontsize\copyrightsize{9}{11}}
+\newcommand{\copyrightsize}{\@setfontsize\copyrightsize{9}{11}}
 
 % foreign language wrappers
 
@@ -549,6 +542,45 @@ philo-sophical munindo amaravati thai-land}
     \partopsep     0pt}%
 \item[]}%
 {\endlist}
+
+\newlength{\quoteRuleWidth}
+\newlength{\quoteTopBotSep}
+\newlength{\quoteHeight}
+
+\setlength{\quoteTopBotSep}{15pt}
+
+\newcommand{\sideruleQuoteFmt}[1]{%
+  \begin{minipage}{\linewidth - 40pt}%
+    \sideruleQuoteFont\Large\color[gray]{0.2}%
+    #1%
+  \end{minipage}%
+}
+
+\definecolor{quoteRuleFill}{gray}{0.95}
+\definecolor{quoteRule}{gray}{0.7}
+
+% #1: quote rule width
+\NewEnviron{siderule-quote}[1][8pt]%
+{%
+  \setlength{\quoteRuleWidth}{#1}%
+  \settototalheight{\quoteHeight}{\sideruleQuoteFmt{\BODY}}%
+  \begin{tikzpicture}%
+    \node (box) [draw=none, rectangle,
+    minimum width={\linewidth - \quoteRuleWidth},
+    minimum height={\quoteHeight + 2\quoteTopBotSep},
+    inner sep=0pt, fill=quoteRuleFill] {};
+    %
+    \node (a) [above left=0pt and 0pt of box.north west] {};
+    \node (b) [below left=0pt and 0pt of box.south west] {};
+    %
+    \draw [line width=\quoteRuleWidth, draw=quoteRule] (a) -- (b);
+    %
+    \node (quote) [below right=\quoteTopBotSep and {20pt - 0.5\quoteRuleWidth} of box.north west,
+                   anchor=north west, draw=none, inner sep=0pt] {%
+      \sideruleQuoteFmt{\BODY}%
+    };
+  \end{tikzpicture}%
+}
 
 \newlength{\diaItemIndent}
 \setlength{\diaItemIndent}{-\quoteMargin}
