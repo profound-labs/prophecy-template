@@ -803,11 +803,12 @@ philo-sophical munindo amaravati thai-land}
 \par
 }
 
-\renewcommand\footnoterule{%
-  \vspace*{\baselineskip}%
+% adapted from base/latex.ltx
+\def\footnoterule{%
   \kern-3\p@
-  {\color{footnoterule}\hrule height 0.25pt width \columnwidth}
-  \kern2.6\p@}
+  {\color{footnoterule}\rule{\columnwidth}{0.25pt}}%
+  \vspace*{7pt}%
+  \kern 2.6\p@}
 
 \renewcommand*{\notesname}{Notes}
 \renewcommand*{\notedivision}{\chapter{\notesname}}
