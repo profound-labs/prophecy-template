@@ -22,6 +22,9 @@ epub-validate:
 mobi:
 	./helpers/generate_mobi.sh
 
+preview:
+	latexmk -pvc $(FILE).tex
+
 chapters-to-asciidoc:
 	./helpers/chapters_to_asciidoc.sh
 
