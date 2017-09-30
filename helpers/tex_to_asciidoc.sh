@@ -45,7 +45,7 @@ OUT_FILE="$OUT_DIR/$name.adoc"
     perl -0777 -pe "s/^(.+?\n)(\[\[[^\n]+\]\]\n= [^\n]+\n)(\n*_[^_]+?_\n)?/\2\n\3\n\1/s" | \
     # brackets at the beginning of a line is the attribute markup,
     # so insert a zero-width space to "escape" it in the text
-    perl -0777 -pe "s/\n(\[[[:alnum:]][^]]+?\])/\n&#8203;&/gs" | \
+    perl -0777 -pe "s/\n(\[[[:alnum:]][^]]+?\])/\n&#8203;\$1/gs" | \
     # shorten too long quote markers
     sed 's/^_____*$/____/' | \
     # quote with role
