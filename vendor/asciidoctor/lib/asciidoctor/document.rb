@@ -134,9 +134,6 @@ class Document < AbstractBlock
   # Public: Get the Hash of document counters
   attr_reader :counters
 
-  # Public: Get the Hash of callouts
-  attr_reader :callouts
-
   # Public: Get the level-0 Section
   attr_reader :header
 
@@ -187,7 +184,6 @@ class Document < AbstractBlock
         accum[key] = (key == :footnotes ? [] : table)
         accum
       end
-      @callouts = parent_doc.callouts
       # QUESTION should we support setting attribute in parent document from nested document?
       # NOTE we must dup or else all the assignments to the overrides clobbers the real attributes
       @attribute_overrides = attr_overrides = parent_doc.attributes.dup
@@ -211,9 +207,9 @@ class Document < AbstractBlock
         :links => [],
         :images => [],
         :indexterms => [],
+        :callouts => Callouts.new,
         :includes => ::Set.new,
       }
-      @callouts = Callouts.new
       # copy attributes map and normalize keys
       # attribute overrides are attributes that can only be set from the commandline
       # a direct assignment effectively makes the attribute a constant
@@ -228,6 +224,9 @@ class Document < AbstractBlock
           value = nil
         end
         attr_overrides[key.downcase] = value
+      end
+      if (to_file = options[:to_file])
+        attr_overrides['outfilesuffix'] = ::File.extname to_file
       end
       @attribute_overrides = attr_overrides
       # safely resolve the safe mode from const, int or string
@@ -443,21 +442,20 @@ class Document < AbstractBlock
 
       # fallback directories
       attrs['stylesdir'] ||= '.'
-      attrs['iconsdir'] ||= ::File.join(attrs.fetch('imagesdir', './images'), 'icons')
+      attrs['iconsdir'] ||= %(#{attrs.fetch 'imagesdir', './images'}/icons)
 
       if initialize_extensions
         if (ext_registry = options[:extension_registry])
-          # QUESTION should we warn the value type of the option is not a registry or boolean?
-          unless Extensions::Registry === ext_registry || (::RUBY_ENGINE_JRUBY &&
+          # QUESTION should we warn the value type of the option is not a registry
+          if Extensions::Registry === ext_registry || (::RUBY_ENGINE_JRUBY &&
               ::AsciidoctorJ::Extensions::ExtensionRegistry === ext_registry)
-            ext_registry = Extensions::Registry.new
+            @extensions = ext_registry.activate self
           end
         elsif ::Proc === (ext_block = options[:extensions])
-          ext_registry = Extensions.create(&ext_block)
-        else
-          ext_registry = Extensions::Registry.new
+          @extensions = Extensions.create(&ext_block).activate self
+        elsif !Extensions.groups.empty?
+          @extensions = Extensions::Registry.new.activate self
         end
-        @extensions = ext_registry.activate self
       end
 
       @reader = PreprocessorReader.new self, data, (Reader::Cursor.new attrs['docfile'], @base_dir), :normalize => true
@@ -585,6 +583,10 @@ class Document < AbstractBlock
     @catalog[:footnotes]
   end
 
+  def callouts
+    @catalog[:callouts]
+  end
+
   def nested?
     @parent_document ? true : false
   end
@@ -611,9 +613,11 @@ class Document < AbstractBlock
     @attributes['basebackend'] == base
   end
 
-  # The title explicitly defined in the document attributes
+  # Public: Return the doctitle as a String
+  #
+  # Returns the resolved doctitle as a [String] or nil if a doctitle cannot be resolved
   def title
-    @attributes['title']
+    doctitle
   end
 
   def title= title
@@ -643,14 +647,12 @@ class Document < AbstractBlock
   # Returns the resolved title as a [Title] if the :partition option is passed or a [String] if not
   # or nil if no value can be resolved.
   def doctitle opts = {}
-    if !(val = @attributes['title'].nil_or_empty?)
-      val = title
-    elsif (sect = first_section)
-      val = sect.title
-    elsif opts[:use_fallback] && (val = @attributes['untitled-label'])
-      # use val set in condition
-    else
-      return
+    if (val = @attributes['title']).nil_or_empty?
+      if (sect = first_section)
+        val = sect.title
+      elsif !(opts[:use_fallback] && (val = @attributes['untitled-label']))
+        return
+      end
     end
 
     if (separator = opts[:partition])
@@ -706,7 +708,7 @@ class Document < AbstractBlock
   #
   # Returns The parent Block
   def << block
-    enumerate_section block if block.context == :section
+    assign_numeral block if block.context == :section
     super
   end
 
@@ -802,7 +804,7 @@ class Document < AbstractBlock
 
   # Internal: Restore the attributes to the previously saved state (attributes in header)
   def restore_attributes
-    @callouts.rewind unless @parent_document
+    @catalog[:callouts].rewind unless @parent_document
     # QUESTION shouldn't this be a dup in case we convert again?
     @attributes = @header_attributes
   end
@@ -1048,7 +1050,7 @@ class Document < AbstractBlock
     # QUESTION should we add extensions that execute before conversion begins?
 
     if doctype == 'inline'
-      if (block = @blocks[0])
+      if (block = @blocks[0] || @header)
         if block.content_model == :compound || block.content_model == :empty
           warn %(asciidoctor: WARNING: no inline candidate; use the inline doctype to convert a single paragragh, verbatim, or raw block)
         else
@@ -1090,6 +1092,9 @@ class Document < AbstractBlock
         end
       else
         ::IO.write target, output
+      end
+      if @backend == 'manpage' && ::String === target && (@converter.respond_to? :write_alternate_pages)
+        @converter.write_alternate_pages @attributes['mannames'], @attributes['manvolnum'], target
       end
       nil
     end

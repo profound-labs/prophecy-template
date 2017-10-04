@@ -190,15 +190,15 @@ class Reader
   # be processed and marked as such so that subsequent reads will not need to process
   # the lines again.
   #
-  # num    - The positive Integer number of lines to peek (must be greater than 0).
-  # direct - A Boolean indicating whether processing should be disabled when reading lines
+  # num    - The positive Integer number of lines to peek or nil to peek all lines (default: nil).
+  # direct - A Boolean indicating whether processing should be disabled when reading lines (default: false).
   #
   # Returns A String Array of the next multiple lines of source data, or an empty Array
   # if there are no more lines in this Reader.
-  def peek_lines num, direct = false
+  def peek_lines num = nil, direct = false
     old_look_ahead = @look_ahead
     result = []
-    num.times do
+    (num || ::Float::MAX.to_i).times do
       if (line = direct ? shift : read_line)
         result << line
       else
@@ -637,7 +637,7 @@ class PreprocessorReader < Reader
           @look_ahead += 1
           line[1..-1]
         # QUESTION should we strip whitespace from raw attributes in Substitutors#parse_attributes? (check perf)
-        elsif preprocess_include_directive $2, $3.strip
+        elsif preprocess_include_directive $2, $3
           # peek again since the content has changed
           nil
         else
@@ -819,7 +819,8 @@ class PreprocessorReader < Reader
   # target - The name of the source document to include as specified in the
   #          target slot of the include::[] directive
   #
-  # Returns a Boolean indicating whether the line under the cursor has changed.
+  # Returns a [Boolean] indicating whether the line under the cursor was changed.
+  # To skip over the directive, call shift and return true.
   def preprocess_include_directive raw_target, raw_attributes
     if ((target = raw_target).include? ATTR_REF_HEAD) &&
         (target = @document.sub_attributes raw_target, :attribute_missing => 'drop-line').empty?
@@ -831,7 +832,7 @@ class PreprocessorReader < Reader
     elsif include_processors? && (ext = @include_processor_extensions.find {|candidate| candidate.instance.handles? target })
       shift
       # FIXME parse attributes only if requested by extension
-      ext.process_method[@document, self, target, AttributeList.new(raw_attributes).parse]
+      ext.process_method[@document, self, target, raw_attributes ? AttributeList.new(raw_attributes).parse : {}]
       true
     # if running in SafeMode::SECURE or greater, don't process this directive
     # however, be friendly and at least make it a link to the source document
@@ -842,13 +843,12 @@ class PreprocessorReader < Reader
     elsif (abs_maxdepth = @maxdepth[:abs]) > 0
       if @include_stack.size >= abs_maxdepth
         warn %(asciidoctor: ERROR: #{line_info}: maximum include depth of #{@maxdepth[:rel]} exceeded)
-        return false
-      end
-      if ::RUBY_ENGINE_OPAL && ::JAVASCRIPT_IO_MODULE == 'xmlhttprequest'
+        return
+      elsif ::RUBY_ENGINE_OPAL && ::JAVASCRIPT_IO_MODULE == 'xmlhttprequest'
         # NOTE resolves uri relative to currently loaded document
         # NOTE we defer checking if file exists and catch the 404 error if it does not
         target_type = :file
-        inc_path = relpath = @include_stack.empty? && ::Dir.pwd == @document.base_dir ? target : (::File.join @dir, target)
+        inc_path = relpath = @include_stack.empty? && ::Dir.pwd == @document.base_dir ? target : %(#{@dir}/#{target})
       elsif Helpers.uriish? target
         unless @document.attributes.key? 'allow-uri-read'
           replace_next_line %(link:#{target}[])
@@ -870,8 +870,12 @@ class PreprocessorReader < Reader
         # include file is resolved relative to dir of current include, or base_dir if within original docfile
         inc_path = @document.normalize_system_path target, @dir, nil, :target_name => 'include file'
         unless ::File.file? inc_path
-          warn %(asciidoctor: WARNING: #{line_info}: include file not found: #{inc_path})
-          replace_next_line %(Unresolved directive in #{@path} - include::#{target}[#{raw_attributes}])
+          if raw_attributes && ((AttributeList.new raw_attributes).parse.key? 'optional-option')
+            shift
+          else
+            warn %(asciidoctor: ERROR: #{line_info}: include file not found: #{inc_path})
+            replace_next_line %(Unresolved directive in #{@path} - include::#{target}[#{raw_attributes}])
+          end
           return true
         end
         # NOTE relpath is the path relative to the root document (or base_dir, if set)
@@ -880,7 +884,7 @@ class PreprocessorReader < Reader
       end
 
       inc_linenos, inc_tags, attributes = nil, nil, {}
-      unless raw_attributes.empty?
+      if raw_attributes
         # QUESTION should we use @document.parse_attribues?
         attributes = AttributeList.new(raw_attributes).parse
         if attributes.key? 'lines'
@@ -943,7 +947,7 @@ class PreprocessorReader < Reader
             end
           end
         rescue
-          warn %(asciidoctor: WARNING: #{line_info}: include #{target_type} not readable: #{inc_path})
+          warn %(asciidoctor: ERROR: #{line_info}: include #{target_type} not readable: #{inc_path})
           replace_next_line %(Unresolved directive in #{@path} - include::#{target}[#{raw_attributes}])
           return true
         end
@@ -1003,7 +1007,7 @@ class PreprocessorReader < Reader
             end
           end
         rescue
-          warn %(asciidoctor: WARNING: #{line_info}: include #{target_type} not readable: #{inc_path})
+          warn %(asciidoctor: ERROR: #{line_info}: include #{target_type} not readable: #{inc_path})
           replace_next_line %(Unresolved directive in #{@path} - include::#{target}[#{raw_attributes}])
           return true
         end
@@ -1020,14 +1024,12 @@ class PreprocessorReader < Reader
           shift
           push_include inc_content, inc_path, relpath, 1, attributes
         rescue
-          warn %(asciidoctor: WARNING: #{line_info}: include #{target_type} not readable: #{inc_path})
+          warn %(asciidoctor: ERROR: #{line_info}: include #{target_type} not readable: #{inc_path})
           replace_next_line %(Unresolved directive in #{@path} - include::#{target}[#{raw_attributes}])
           return true
         end
       end
       true
-    else
-      false
     end
   end
 

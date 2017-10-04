@@ -553,7 +553,7 @@ ____
       EOS
 
       output = render_embedded_string input
-      assert output.include?('<pre class="content"><em>GET /groups/<a href="#group-id">{group-id}</a></em></pre>')
+      assert_includes output, '<pre class="content"><em>GET /groups/<a href="#group-id">{group-id}</a></em></pre>'
     end
   end
 
@@ -676,37 +676,37 @@ yet another example
 
   context 'Admonition Blocks' do
     test 'caption block-level attribute should be used as caption' do
-       input = <<-EOS
+      input = <<-EOS
 :tip-caption: Pro Tip
 
 [caption="Pro Tip"]
 TIP: Override the caption of an admonition block using an attribute entry
-       EOS
+      EOS
 
-       output = render_embedded_string input
-       assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Pro Tip"]', output, 1
+      output = render_embedded_string input
+      assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Pro Tip"]', output, 1
     end
 
     test 'can override caption of admonition block using document attribute' do
-       input = <<-EOS
+      input = <<-EOS
 :tip-caption: Pro Tip
 
 TIP: Override the caption of an admonition block using an attribute entry
-       EOS
+      EOS
 
-       output = render_embedded_string input
-       assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Pro Tip"]', output, 1
+      output = render_embedded_string input
+      assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Pro Tip"]', output, 1
     end
 
     test 'blank caption document attribute should not blank admonition block caption' do
-       input = <<-EOS
+      input = <<-EOS
 :caption:
 
 TIP: Override the caption of an admonition block using an attribute entry
-       EOS
+      EOS
 
-       output = render_embedded_string input
-       assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Tip"]', output, 1
+      output = render_embedded_string input
+      assert_xpath '/*[@class="admonitionblock tip"]//*[@class="icon"]/*[@class="title"][text()="Tip"]', output, 1
     end
   end
 
@@ -1015,7 +1015,7 @@ Map<String, String> *attributes*; //<1>
       block = block_from_string input
       assert_equal [:specialcharacters,:callouts,:quotes], block.subs
       output = block.render
-      assert output.include?('Map&lt;String, String&gt; <strong>attributes</strong>;')
+      assert_includes output, 'Map&lt;String, String&gt; <strong>attributes</strong>;'
       assert_xpath '//pre/b[text()="(1)"]', output, 1
     end
 
@@ -1065,6 +1065,20 @@ AssertionError
       # FIXME JRuby is adding extra trailing endlines in the second document,
       # for now, rstrip is necessary
       assert_equal output.rstrip, output2.rstrip
+    end
+
+    test 'first character of block title may be a period if not followed by space' do
+      input = <<-EOS
+..gitignore
+----
+/.bundle/
+/build/
+/Gemfile.lock
+----
+      EOS
+
+      output = render_embedded_string input
+      assert_xpath '//*[@class="title"][text()=".gitignore"]', output
     end
 
     test 'listing block without title should generate screen element in docbook' do
@@ -1467,8 +1481,8 @@ Block content
       EOS
 
       output = render_embedded_string input
-      assert output.include?('Block content')
-      refute output.include?('[]')
+      assert_includes output, 'Block content'
+      refute_includes output, '[]'
     end
 
     test 'empty block anchor should not appear in output' do
@@ -1480,8 +1494,8 @@ Block content
       EOS
 
       output = render_embedded_string input
-      assert output.include?('Block content')
-      refute output.include?('[[]]')
+      assert_includes output, 'Block content'
+      refute_includes output, '[[]]'
     end
   end
 
@@ -1832,7 +1846,7 @@ image::{bogus}[]
       EOS
 
       output, warnings = redirect_streams {|_, err| [(render_embedded_string input), err.string] }
-      assert output.include?('image::{bogus}[]')
+      assert_includes output, 'image::{bogus}[]'
       assert_includes warnings, 'dropping line containing reference to missing attribute'
     end
 
@@ -1872,7 +1886,7 @@ image::{bogus}[]
       output, warnings = redirect_streams {|_, err| [(render_embedded_string input), err.string] }
       assert_css 'img', output, 0
       assert_css 'h2', output, 1
-      refute output.include?('== Section Title')
+      refute_includes output, '== Section Title'
       assert_includes warnings, 'dropping line containing reference to missing attribute'
     end
 
@@ -2686,7 +2700,7 @@ public class Printer {
       assert_match(/\.<em>out<\/em>\./, output, 1)
       assert_match(/\*asterisks\*/, output, 1)
       assert_match(/<strong>bold<\/strong>/, output, 1)
-      refute output.include?(Asciidoctor::Substitutors::PASS_START)
+      refute_includes output, Asciidoctor::Substitutors::PASS_START
     end
 
     test 'should link to CodeRay stylesheet if source-highlighter is coderay and linkcss is set' do
@@ -3156,7 +3170,7 @@ http://{application}.org[{gt}{gt}] <1>
       block = doc.blocks.first
       assert_equal [:attributes, :specialcharacters, :macros], block.subs
       result = doc.render
-      assert result.include?('<pre><a href="http://asciidoctor.org">&gt;&gt;</a> &lt;1&gt;</pre>')
+      assert_includes result, '<pre><a href="http://asciidoctor.org">&gt;&gt;</a> &lt;1&gt;</pre>'
     end
 
     test 'should be able to set subs then modify them' do
@@ -3169,7 +3183,7 @@ _hey now_ <1>
       block = doc.blocks.first
       assert_equal [:specialcharacters], block.subs
       result = doc.render
-      assert result.include?('_hey now_ &lt;1&gt;')
+      assert_includes result, '_hey now_ &lt;1&gt;'
     end
   end
 

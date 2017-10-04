@@ -322,7 +322,7 @@ module Asciidoctor
 </partintro>)
         end
       else
-        node.content
+        resolve_content node
       end
     end
 
@@ -606,8 +606,8 @@ module Asciidoctor
       :monospaced  => ['<literal>',                '</literal>',     false],
       :emphasis    => ['<emphasis>',               '</emphasis>',    true],
       :strong      => ['<emphasis role="strong">', '</emphasis>',    true],
-      :double      => ['&#8220;',                  '&#8221;',        true],
-      :single      => ['&#8216;',                  '&#8217;',        true],
+      :double      => ['<quote>',                  '</quote>',       true],
+      :single      => ['<quote>',                  '</quote>',       true],
       :mark        => ['<emphasis role="marked">', '</emphasis>',    false],
       :superscript => ['<superscript>',            '</superscript>', false],
       :subscript   => ['<subscript>',              '</subscript>',   false]
@@ -732,7 +732,7 @@ module Asciidoctor
         result << %(<manvolnum>#{doc.attr 'manvolnum'}</manvolnum>) if doc.attr? 'manvolnum'
         result << '</refmeta>'
         result << '<refnamediv>'
-        result << %(<refname>#{doc.attr 'manname'}</refname>) if doc.attr? 'manname'
+        result += (doc.attr 'mannames').map {|n| %(<refname>#{n}</refname>) } if doc.attr? 'mannames'
         result << %(<refpurpose>#{doc.attr 'manpurpose'}</refpurpose>) if doc.attr? 'manpurpose'
         result << '</refnamediv>'
       end

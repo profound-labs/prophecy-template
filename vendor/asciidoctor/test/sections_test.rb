@@ -51,6 +51,16 @@ context 'Sections' do
       assert_equal '_section-one', sec.id
     end
 
+    test 'synthetic id separator can only be one character' do
+      input = <<-EOS
+:idseparator: -=-
+
+== This Section Is All You Need
+      EOS
+      sec = block_from_string input
+      assert_equal '_this-section-is-all-you-need', sec.id
+    end
+
     test 'synthetic id separator can be set to blank' do
       sec = block_from_string(":idseparator:\n\n== Section One")
       assert_equal '_sectionone', sec.id
@@ -118,6 +128,12 @@ Section Title [[refid,reftext]]
       sec = block_from_string(%(== Section One \\[[one]] ==))
       refute_equal 'one', sec.id
       assert_equal 'Section One [[one]]', sec.title
+    end
+
+    test 'should not process inline anchor in section title if section has explicit ID' do
+      sec = block_from_string(%([#sect-one]\n== Section One [[one]]))
+      assert_equal 'sect-one', sec.id
+      assert_equal 'Section One <a id="one"></a>', sec.title
     end
 
     test 'title substitutions are applied before generating id' do
@@ -363,6 +379,19 @@ preamble
       assert_equal 'refguide', doc.attr('css-signature')
       output = doc.render
       assert_css 'body#reference', output, 1
+    end
+
+    test 'should register document in catalog if id is set' do
+      input = <<-EOS
+[[manual,Manual]]
+= Reference Manual
+
+preamble
+      EOS
+      doc = document_from_string input
+      assert_equal 'manual', doc.id
+      assert_equal 'Manual', doc.attributes['reftext']
+      assert_equal doc, doc.catalog[:refs]['manual']
     end
 
     test 'should discard style, role and options shorthand attributes defined on document title' do
@@ -664,7 +693,7 @@ not in section
 
       doc = document_from_string input
       heading = doc.blocks.first
-      assert heading.is_a?(Asciidoctor::Block)
+      assert_kind_of Asciidoctor::Block, heading
       assert_equal :floating_title, heading.context
       assert_equal '_independent_heading', heading.id
       assert doc.catalog[:ids].has_key?('_independent_heading')
@@ -800,6 +829,19 @@ content
       reftext = doc.catalog[:ids]['_install']
       refute_nil reftext
       assert_equal 'Install Procedure', reftext
+    end
+
+    test 'should not process inline anchor in discrete heading if explicit ID is assigned' do
+      input = <<-EOS
+[discrete#install]
+== Install [[installation]]
+
+content
+      EOS
+
+      block = block_from_string input
+      assert_equal block.id, 'install'
+      assert_equal 'Install <a id="installation"></a>', block.title
     end
   end
 
@@ -2655,6 +2697,31 @@ That's all she wrote!
       assert_xpath '//h1[@id="_chapter_one"][text() = "Chapter One"]', output, 1
       assert_xpath '//h1[@id="_chapter_two"][text() = "Chapter Two"]', output, 1
       assert_xpath '//h1[@id="_chapter_three"][text() = "Chapter Three"]', output, 1
+    end
+
+    test 'should add class matching role to part' do
+      input = <<-EOS
+= Book Title
+:doctype: book
+
+[.newbie]
+= Part 1
+
+== Chapter A
+
+content
+
+= Part 2
+
+== Chapter B
+
+content
+      EOS
+
+      result = render_embedded_string input
+      assert_css 'h1.sect0', result, 2
+      assert_css 'h1.sect0.newbie', result, 1
+      assert_css 'h1.sect0.newbie#_part_1', result, 1
     end
 
     test 'should assign appropriate sectname for section type' do

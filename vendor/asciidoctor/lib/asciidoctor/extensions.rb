@@ -107,7 +107,7 @@ module Extensions
     # opts   - An optional Hash of options (default: {}):
     #          :level    - [Integer] The level to assign to this section; defaults to
     #                      one greater than the parent level (optional).
-    #          :numbered - [Boolean] A flag to force numbering, which falls back to the 
+    #          :numbered - [Boolean] A flag to force numbering, which falls back to the
     #                      state of the sectnums document attribute (optional).
     #
     # Returns a [Section] node with all properties properly initialized.
@@ -147,7 +147,20 @@ module Extensions
       Block.new parent, context, { :source => source, :attributes => attrs }.merge(opts)
     end
 
+    # Public: Creates an image block node and links it to the specified parent.
+    #
+    # parent - The parent Block (Block, Section, or Document) of this new image block.
+    # attrs  - A Hash of attributes to control how the image block is built.
+    #          Use the target attribute to set the source of the image.
+    #          Use the alt attribute to specify an alternative text for the image.
+    # opts   - An optional Hash of options (default: {})
+    #
+    # Returns a [Block] node with all properties properly initialized.
     def create_image_block parent, attrs, opts = {}
+      unless (target = attrs['target'])
+        raise ::ArgumentError, 'Unable to create an image block, target attribute is required'
+      end
+      attrs['alt'] ||= (attrs['default-alt'] = Helpers.basename(target, true).tr('_-', ' '))
       create_block parent, :image, nil, attrs, opts
     end
 
@@ -630,13 +643,12 @@ module Extensions
     # Public: Returns the {Asciidoctor::Document} on which the extensions in this registry are being used.
     attr_reader :document
 
-    # Public: Returns the Array of {Group} classes, instances and/or Procs that have been registered.
+    # Public: Returns the Hash of {Group} classes, instances, and/or Procs that have been registered with this registry.
     attr_reader :groups
 
     def initialize groups = {}
       @groups = groups
-      @preprocessor_extensions = @tree_processor_extensions = @postprocessor_extensions = @include_processor_extensions = @docinfo_processor_extensions = nil
-      @block_extensions = @block_macro_extensions = @inline_macro_extensions = nil
+      @preprocessor_extensions = @tree_processor_extensions = @postprocessor_extensions = @include_processor_extensions = @docinfo_processor_extensions = @block_extensions = @block_macro_extensions = @inline_macro_extensions = nil
       @document = nil
     end
 
@@ -648,19 +660,21 @@ module Extensions
     # Returns the instance of this [Registry].
     def activate document
       @document = document
-      (Extensions.groups.values + @groups.values).each do |group|
-        case group
-        when ::Proc
-          case group.arity
-          when 0, -1
-            instance_exec(&group)
-          when 1
-            group.call self
+      unless (ext_groups = Extensions.groups.values + @groups.values).empty?
+        ext_groups.each do |group|
+          case group
+          when ::Proc
+            case group.arity
+            when 0, -1
+              instance_exec(&group)
+            when 1
+              group.call self
+            end
+          when ::Class
+            group.new.activate self
+          else
+            group.activate self
           end
-        when ::Class
-          group.new.activate self
-        else
-          group.activate self
         end
       end
       self

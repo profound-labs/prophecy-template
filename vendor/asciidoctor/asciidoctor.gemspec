@@ -17,13 +17,13 @@ Gem::Specification.new do |s|
   rescue
     Dir['**/*']
   end
-  s.files = files.grep(/^(?:(?:data|lib|man)\/.+|Gemfile|Rakefile|(?:CHANGELOG|CONTRIBUTING|LICENSE|README(?:-\w+)?)\.adoc|#{s.name}\.gemspec)$/)
+  s.files = files.grep(/^(?:(?:data|lib|man)\/.+|Gemfile|Rakefile|LICENSE|(?:CHANGELOG|CONTRIBUTINGREADME(?:-\w+)?)\.adoc|#{s.name}\.gemspec)$/)
   s.executables = files.grep(/^bin\//).map {|f| File.basename f }
   s.require_paths = ['lib']
   s.test_files = files.grep(/^(?:(?:features|test)\/.+)$/)
   s.has_rdoc = true
   s.rdoc_options = ['--charset=UTF-8']
-  s.extra_rdoc_files = ['CHANGELOG.adoc', 'CONTRIBUTING.adoc', 'LICENSE.adoc']
+  s.extra_rdoc_files = ['CHANGELOG.adoc', 'CONTRIBUTING.adoc', 'LICENSE']
 
   # asciimath is needed for testing AsciiMath in DocBook backend
   s.add_development_dependency 'asciimath', '~> 1.0.0'
@@ -34,7 +34,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'erubis', '~> 2.7.0'
   # haml is needed for testing custom templates
   s.add_development_dependency 'haml', '~> 5.0.0'
-  s.add_development_dependency 'nokogiri', '~> 1.7.0'
+  s.add_development_dependency 'nokogiri', '~> 1.8.0'
   s.add_development_dependency 'rake', '~> 10.0.0'
   s.add_development_dependency 'rspec-expectations', '~> 2.14.0'
   # slim is needed for testing custom templates

@@ -102,15 +102,11 @@ class ContentConverter
       title = doctitle.main
       subtitle = doctitle.subtitle
     else
-      # HACK until we get proper handling of title-only in CSS
-      title = ''
-      subtitle = doctitle.combined
+      title = doctitle.combined
+      subtitle = nil
     end
 
     doctitle_sanitized = doctitle.combined
-    # FIXME why was this wrapped in <b>?
-    # FIXME why was the subtitle wrapped in <small>?
-    #subtitle_formatted = subtitle.split.map {|w| %(<b>#{w}</b>) } * ' '
 
     if (node.attr 'publication-type', 'book') == 'book'
       byline = nil
@@ -152,21 +148,13 @@ class ContentConverter
 <title>#{doctitle_sanitized}</title>
 <link rel="stylesheet" type="text/css" href="styles/epub3.css"/>
 <link rel="stylesheet" type="text/css" href="styles/epub3-css3-only.css" media="(min-device-width: 0px)"/>
-#{icon_css_head}<script type="text/javascript">
-document.addEventListener('DOMContentLoaded', function(event, reader) {
-  if (!(reader = navigator.epubReadingSystem)) {
-    if (navigator.userAgent.indexOf(' calibre/') >= 0) reader = { name: 'calibre-desktop' };
-    else if (window.parent == window || !(reader = window.parent.navigator.epubReadingSystem)) return;
-  }
-  document.body.setAttribute('class', reader.name.toLowerCase().replace(/ /g, '-'));
-});
-</script>
+#{icon_css_head}
 </head>
 <body>
 <section class="chapter" title="#{doctitle_sanitized.gsub '"', '&quot;'}" epub:type="chapter" id="#{docid}">
 #{icon_css_scoped}<header>
 <div class="chapter-header">
-#{byline}<h1 class="chapter-title">#{title}#{subtitle ? %[ <span class="subtitle">#{subtitle}</span>] : nil}</h1>
+#{byline}<h1 class="chapter-title">#{title}#{subtitle ? %[ <small class="subtitle">#{subtitle}</small>] : nil}</h1>
 </div>
 </header>
 #{content})]
@@ -626,7 +614,12 @@ document.addEventListener('DOMContentLoaded', function(event, reader) {
   def image node
     target = node.attr 'target'
     type = (::File.extname target)[1..-1]
-    img_attrs = [%(alt="#{node.attr 'alt'}")]
+
+    img_attrs = []
+    img_attrs << %( id="#{node.attr 'id'}") if node.attr? 'id'
+    img_attrs << %( class="#{node.attr 'role'}") if node.attr? 'role'
+    img_attrs << %( alt="#{node.attr 'alt'}") if node.attr? 'alt'
+
     case type
     when 'svg'
       img_attrs << %(style="width: #{node.attr 'scaledwidth', '100%'}")
@@ -693,10 +686,10 @@ document.addEventListener('DOMContentLoaded', function(event, reader) {
         id_attr = nil unless @xrefs_seen.add? refid
         refdoc = doc.references[:spine_items].find {|it| refdoc_id == (it.id || (it.attr 'docname')) }
         if refdoc
-          if (reftext = refdoc.references[:ids][refdoc_refid])
-            text ||= reftext
+          if (xreftext = refdoc.references[:ids][refdoc_refid])
+            text ||= xreftext
           else
-            # FIXME false positives
+            # FIXME false negatives
             #warn %(asciidoctor: WARNING: #{::File.basename(doc.attr 'docfile')}: invalid reference to unknown anchor in #{refdoc_id} chapter: #{refdoc_refid})
           end
         else
@@ -704,10 +697,18 @@ document.addEventListener('DOMContentLoaded', function(event, reader) {
         end
       else
         id_attr = (@xrefs_seen.add? refid) ? %( id="xref-#{refid}") : nil
-        if (reftext = doc.references[:ids][refid])
-          text ||= reftext
+        if (refs = doc.references[:refs])
+          if ::Asciidoctor::AbstractNode === (ref = refs[refid])
+            xreftext = text || ref.xreftext((@xrefstyle ||= (doc.attr 'xrefstyle')))
+          end
         else
-          # FIXME we get false negatives for reference to bibref
+          xreftext = doc.references[:ids][refid]
+        end
+
+        if xreftext
+          text ||= xreftext
+        else
+          # FIXME we get false negatives for reference to bibref when using Asciidoctor < 1.5.6
           #warn %(asciidoctor: WARNING: #{::File.basename(doc.attr 'docfile')}: invalid reference to unknown local anchor (or valid bibref): #{refid})
         end
       end

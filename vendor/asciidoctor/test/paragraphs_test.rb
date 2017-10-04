@@ -194,7 +194,7 @@ Note that multi-entry terms generate separate index entries.
       EOS
 
       output = render_embedded_string input
-      assert output.include?('*&lt;Hey Jude&gt;*')
+      assert_includes output, '*&lt;Hey Jude&gt;*'
     end
 
     test 'normal paragraph should honor specialchars shorthand' do
@@ -204,7 +204,7 @@ Note that multi-entry terms generate separate index entries.
       EOS
 
       output = render_embedded_string input
-      assert output.include?('*&lt;Hey Jude&gt;*')
+      assert_includes output, '*&lt;Hey Jude&gt;*'
     end
 
     test 'should add a hardbreak at end of each line when hardbreaks option is set' do
@@ -218,7 +218,7 @@ lips
       output = render_embedded_string input
       assert_css 'br', output, 2
       assert_xpath '//p', output, 1
-      assert output.include?("<p>read<br>\nmy<br>\nlips</p>")
+      assert_includes output, "<p>read<br>\nmy<br>\nlips</p>"
     end
   end
 
@@ -371,7 +371,7 @@ _GET /groups/link:#group-id[\{group-id\}]_
       EOS
 
       output = render_embedded_string input
-      assert output.include?('<pre class="content"><em>GET /groups/<a href="#group-id">{group-id}</a></em></pre>')
+      assert_includes output, '<pre class="content"><em>GET /groups/<a href="#group-id">{group-id}</a></em></pre>'
     end
 
     test 'quote paragraph should honor explicit subs list' do
@@ -382,7 +382,7 @@ _GET /groups/link:#group-id[\{group-id\}]_
       EOS
 
       output = render_embedded_string input
-      assert output.include?('*Hey Jude*')
+      assert_includes output, '*Hey Jude*'
     end
   end
 
@@ -465,6 +465,9 @@ As you can see here.
 
 [quote]
 Wise words from a wise person.
+
+[open]
+Make it what you want.
         EOS
 
         output = render_string input, :backend => 'docbook'
@@ -473,6 +476,18 @@ Wise words from a wise person.
         assert_css 'sidebar > simpara', output, 1
         assert_css 'informalexample > simpara', output, 1
         assert_css 'blockquote > simpara', output, 1
+        assert_css 'chapter > simpara', output, 1
+      end
+
+      test 'should convert open paragraph to open block' do
+        input = <<-EOS
+[open]
+Make it what you want.
+        EOS
+
+        output = render_embedded_string input
+        assert_css '.openblock', output, 1
+        assert_css '.openblock p', output, 0
       end
 
       test 'should wrap text in simpara for styled paragraphs with title when rendered to DocBook' do

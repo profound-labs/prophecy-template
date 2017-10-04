@@ -70,7 +70,7 @@ begin
     rdoc.rdoc_dir = 'rdoc'
     rdoc.title = "Asciidoctor #{Asciidoctor::VERSION}"
     rdoc.markup = 'tomdoc' if rdoc.respond_to?(:markup)
-    rdoc.rdoc_files.include('LICENSE.adoc', 'lib/**/*.rb')
+    rdoc.rdoc_files.include('LICENSE', 'lib/**/*.rb')
   end
 rescue LoadError
 end
@@ -98,7 +98,8 @@ begin
         lib/**/*.rb
         -
         CHANGELOG.adoc
-        LICENSE.adoc
+        CONTRIBUTING.adoc
+        LICENSE
     )
     # --no-highlight enabled to prevent verbatim blocks in AsciiDoc that begin with $ from being dropped
     # need to patch htmlify method to not attempt to syntax highlight blocks (or fix what's wrong)
@@ -135,16 +136,25 @@ desc 'Trigger builds for all dependent projects on Travis CI'
           ENV['TRAVIS_TAG'].to_s.empty? &&
           (ENV['TRAVIS_JOB_NUMBER'].to_s.end_with? '.1')
     end
+    # NOTE The TRAVIS_TOKEN env var must be defined in Travis interface.
+    # Retrieve this token using the `travis token` command.
+    # The GitHub user corresponding to the Travis user must have write access to the repository.
+    # After granting permission, sign into Travis and resync the repositories.
     next unless (token = ENV['TRAVIS_TOKEN'])
+    require 'json'
     require 'net/http'
+    require 'open-uri'
+    require 'yaml'
     %w(
       asciidoctor/asciidoctor.js
       asciidoctor/asciidoctorj
       asciidoctor/asciidoctorj/asciidoctorj-1.6.0
       asciidoctor/asciidoctor-diagram
+      asciidoctor/asciidoctor-reveal.js
     ).each do |project|
       org, name, branch = project.split '/', 3
       branch ||= 'master'
+      project = [org, name, branch] * '/'
       header = {
         'Content-Type' => 'application/json',
         'Accept' => 'application/json',
@@ -152,9 +162,16 @@ desc 'Trigger builds for all dependent projects on Travis CI'
         'Authorization' => %(token #{token})
       }
       if (commit_hash = ENV['TRAVIS_COMMIT'])
-        commit_memo = %( (#{commit_hash.slice 0, 8})\\n\\nhttps://github.com/#{ENV['TRAVIS_REPO_SLUG'] || 'asciidoctor/asciidoctor'}/commit/#{commit_hash})
+        commit_memo = %( (#{commit_hash.slice 0, 8})\n\nhttps://github.com/#{ENV['TRAVIS_REPO_SLUG'] || 'asciidoctor/asciidoctor'}/commit/#{commit_hash})
       end
-      payload = %({ "request": { "branch": "#{branch}", "message": "Build triggered by Asciidoctor#{commit_memo}" } })
+      config = YAML.load open(%(https://raw.githubusercontent.com/#{project}/.travis-upstream-only.yml)) {|fd| fd.read } rescue {}
+      payload = {
+        'request' => {
+          'branch' => branch,
+          'message' => %(Build triggered by Asciidoctor#{commit_memo}),
+          'config' => config
+        }
+      }.to_json
       (http = Net::HTTP.new 'api.travis-ci.org', 443).use_ssl = true
       request = Net::HTTP::Post.new %(/repo/#{org}%2F#{name}/requests), header
       request.body = payload

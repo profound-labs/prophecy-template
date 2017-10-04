@@ -156,6 +156,12 @@ third line
         assert_equal 1, reader.lineno
       end
 
+      test 'peek_lines should peek all lines if no arguments are given' do
+        reader = Asciidoctor::Reader.new SAMPLE_DATA
+        assert_equal SAMPLE_DATA, reader.peek_lines
+        assert_equal 1, reader.lineno
+      end
+
       test 'peek_lines should not invert order of lines' do
         reader = Asciidoctor::Reader.new SAMPLE_DATA
         assert_equal SAMPLE_DATA, reader.lines
@@ -368,7 +374,7 @@ This is a paragraph outside the block.
     context 'Type hierarchy' do
       test 'PreprocessorReader should extend from Reader' do
         reader = empty_document.reader
-        assert reader.is_a?(Asciidoctor::Reader)
+        assert_kind_of Asciidoctor::PreprocessorReader, reader
       end
 
       test 'PreprocessorReader should invoke or emulate Reader initializer' do
@@ -604,6 +610,25 @@ include::fixtures/parent-include.adoc[]
         assert_equal parent_include_docfile, reader.file
         assert_equal fixtures_dir, reader.dir
         assert_equal 'fixtures/parent-include.adoc', reader.path
+      end
+
+      test 'missing file referenced by include directive is skipped when optional option is set' do
+        input = <<-EOS
+include::fixtures/no-such-file.adoc[opts=optional]
+
+trailing content
+        EOS
+
+        begin
+          doc, warnings = redirect_streams do |_, err|
+            [(document_from_string input, :safe => :safe, :base_dir => DIRNAME), err.string]
+          end
+          assert_equal 1, doc.blocks.size
+          assert_equal ['trailing content'], doc.blocks[0].lines
+          assert_equal 0, warnings.size
+        rescue
+          flunk 'include directive should not raise exception on missing file'
+        end
       end
 
       test 'missing file referenced by include directive is replaced by warning' do
@@ -1169,7 +1194,7 @@ include::fixtures/parent-include.adoc[depth=1]
           reader = Asciidoctor::PreprocessorReader.new doc, input, Asciidoctor::Reader::Cursor.new(pseudo_docfile), :normalize => true
           [reader.readlines, err.string]
         end
-        assert lines.include?('include::child-include.adoc[]')
+        assert_includes lines, 'include::child-include.adoc[]'
         assert_match(/maximum include depth .* exceeded/, warnings)
       end
 
@@ -1184,8 +1209,8 @@ include::fixtures/parent-include-restricted.adoc[depth=3]
           reader = Asciidoctor::PreprocessorReader.new doc, input, Asciidoctor::Reader::Cursor.new(pseudo_docfile), :normalize => true
           [reader.readlines, err.string]
         end
-        assert lines.include?('first line of child')
-        assert lines.include?('include::grandchild-include.adoc[]')
+        assert_includes lines, 'first line of child'
+        assert_includes lines, 'include::grandchild-include.adoc[]'
         assert_match(/maximum include depth .* exceeded/, warnings)
       end
 

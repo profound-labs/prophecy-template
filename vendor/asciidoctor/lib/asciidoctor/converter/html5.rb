@@ -325,8 +325,7 @@ MathJax.Hub.Config({
     end
 
     def section node
-      slevel = node.level
-      htag = %(h#{slevel + 1})
+      htag = %(h#{(slevel = node.level) + 1})
       id_attr = anchor = link_start = link_end = nil
       if node.id
         id_attr = %( id="#{id = node.id}")
@@ -340,20 +339,17 @@ MathJax.Hub.Config({
           #end
         end
         if doc.attr? 'sectlinks'
-          link_start = %(<a class="link" href="##{id}">)
-          link_end = '</a>'
+          link_start, link_end = %(<a class="link" href="##{id}">), '</a>'
         end
       end
 
+      ex_class = (role = node.role) ? %( #{role}) : ''
       if slevel == 0
-        %(<h1#{id_attr} class="sect0">#{anchor}#{link_start}#{node.title}#{link_end}</h1>
+        %(<h1#{id_attr} class="sect0#{ex_class}">#{anchor}#{link_start}#{node.title}#{link_end}</h1>
 #{node.content})
       else
-        class_attr = (role = node.role) ? %( class="sect#{slevel} #{role}") : %( class="sect#{slevel}")
-        sectnum = if node.numbered && !node.caption && slevel <= (node.document.attr 'sectnumlevels', 3).to_i
-          %(#{node.sectnum} )
-        end
-        %(<div#{class_attr}>
+        sectnum = node.numbered && !node.caption && slevel <= (node.document.attr 'sectnumlevels', 3).to_i ? %(#{node.sectnum} ) : ''
+        %(<div class="sect#{slevel}#{ex_class}">
 <#{htag}#{id_attr}>#{anchor}#{link_start}#{sectnum}#{node.captioned_title}#{link_end}</#{htag}>
 #{slevel == 1 ? %[<div class="sectionbody">\n#{node.content}\n</div>] : node.content}
 </div>)
@@ -373,7 +369,7 @@ MathJax.Hub.Config({
       else
         label = %(<div class="title">#{node.attr 'textlabel'}</div>)
       end
-      %(<div#{id_attr} class="admonitionblock #{name}#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attr} class="admonitionblock #{name}#{(role = node.role) ? " #{role}" : ''}">
 <table>
 <tr>
 <td class="icon">
@@ -531,7 +527,7 @@ Your browser does not support the audio tag.
       id_attribute = node.id ? %( id="#{node.id}") : nil
       title_element = node.title? ? %(<div class="title">#{node.captioned_title}</div>\n) : nil
 
-      %(<div#{id_attribute} class="exampleblock#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attribute} class="exampleblock#{(role = node.role) ? " #{role}" : ''}">
 #{title_element}<div class="content">
 #{node.content}
 </div>
@@ -590,7 +586,12 @@ Your browser does not support the audio tag.
         when 'coderay'
           pre_class = %( class="CodeRay highlight#{nowrap ? ' nowrap' : nil}")
         when 'pygments'
-          pre_class = %( class="pygments highlight#{nowrap ? ' nowrap' : nil}")
+          if (node.document.attr? 'pygments-css', 'inline')
+            @pygments_bg = @stylesheets.pygments_background(node.document.attr 'pygments-style') unless defined? @pygments_bg
+            pre_class = %( class="pygments highlight#{nowrap ? ' nowrap' : ''}" style="background: #{@pygments_bg}")
+          else
+            pre_class = %( class="pygments highlight#{nowrap ? ' nowrap' : ''}")
+          end
         when 'highlightjs', 'highlight.js'
           pre_class = %( class="highlightjs highlight#{nowrap ? ' nowrap' : nil}")
           code_attrs = %( class="language-#{language} hljs"#{code_attrs}) if language
@@ -613,7 +614,7 @@ Your browser does not support the audio tag.
 
       id_attribute = node.id ? %( id="#{node.id}") : nil
       title_element = node.title? ? %(<div class="title">#{node.captioned_title}</div>\n) : nil
-      %(<div#{id_attribute} class="listingblock#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attribute} class="listingblock#{(role = node.role) ? " #{role}" : ''}">
 #{title_element}<div class="content">
 #{pre_start}#{node.content}#{pre_end}
 </div>
@@ -624,7 +625,7 @@ Your browser does not support the audio tag.
       id_attribute = node.id ? %( id="#{node.id}") : nil
       title_element = node.title? ? %(<div class="title">#{node.title}</div>\n) : nil
       nowrap = !(node.document.attr? 'prewrap') || (node.option? 'nowrap')
-      %(<div#{id_attribute} class="literalblock#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attribute} class="literalblock#{(role = node.role) ? " #{role}" : ''}">
 #{title_element}<div class="content">
 <pre#{nowrap ? ' class="nowrap"' : nil}>#{node.content}</pre>
 </div>
@@ -640,7 +641,7 @@ Your browser does not support the audio tag.
         equation = %(#{open}#{equation}#{close})
       end
 
-      %(<div#{id_attribute} class="stemblock#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attribute} class="stemblock#{(role = node.role) ? " #{role}" : ''}">
 #{title_element}<div class="content">
 #{equation}
 </div>
@@ -681,7 +682,7 @@ Your browser does not support the audio tag.
         else
           id_attr = node.id ? %( id="#{node.id}") : nil
           title_el = node.title? ? %(<div class="title">#{node.title}</div>\n) : nil
-          %(<div#{id_attr} class="quoteblock abstract#{(role = node.role) && " #{role}"}">
+          %(<div#{id_attr} class="quoteblock abstract#{(role = node.role) ? " #{role}" : ''}">
 #{title_el}<blockquote>
 #{node.content}
 </blockquote>
@@ -693,7 +694,7 @@ Your browser does not support the audio tag.
       else
           id_attr = node.id ? %( id="#{node.id}") : nil
           title_el = node.title? ? %(<div class="title">#{node.title}</div>\n) : nil
-        %(<div#{id_attr} class="openblock#{style && style != 'open' ? " #{style}" : ''}#{(role = node.role) && " #{role}"}">
+        %(<div#{id_attr} class="openblock#{style && style != 'open' ? " #{style}" : ''}#{(role = node.role) ? " #{role}" : ''}">
 #{title_el}<div class="content">
 #{node.content}
 </div>
@@ -768,7 +769,7 @@ Your browser does not support the audio tag.
     def sidebar node
       id_attribute = node.id ? %( id="#{node.id}") : nil
       title_element = node.title? ? %(<div class="title">#{node.title}</div>\n) : nil
-      %(<div#{id_attribute} class="sidebarblock#{(role = node.role) && " #{role}"}">
+      %(<div#{id_attribute} class="sidebarblock#{(role = node.role) ? " #{role}" : ''}">
 <div class="content">
 #{title_element}#{node.content}
 </div>

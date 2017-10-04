@@ -189,7 +189,7 @@ context 'Invoker' do
   test 'should report error if input file does not exist' do
     redirect_streams do |out, err|
       invoker = invoke_cli [], 'missing_file.asciidoc'
-      assert_match(/input file .* missing or cannot be read/, err.string)
+      assert_match(/input file .* is missing/, err.string)
       assert_equal 1, invoker.code
     end
   end
@@ -197,7 +197,7 @@ context 'Invoker' do
   test 'should treat extra arguments as files' do
     redirect_streams do |out, err|
       invoker = invoke_cli %w(-o /dev/null extra arguments sample.asciidoc), nil
-      assert_match(/input file .* missing or cannot be read/, err.string)
+      assert_match(/input file .* is missing/, err.string)
       assert_equal 1, invoker.code
     end
   end
@@ -234,6 +234,24 @@ context 'Invoker' do
       assert File.exist?(sample_outpath)
     ensure
       FileUtils.rm_f(sample_outpath)
+      FileUtils.rmdir(destination_path)
+    end
+  end
+
+  test 'should preserve directory structure in destination directory if source directory is set' do
+    sample_inpath = 'subdir/index.adoc'
+    destination_path = 'test_output'
+    destination_subdir_path = File.join destination_path, 'subdir'
+    sample_outpath = File.join destination_subdir_path, 'index.html'
+    begin
+      FileUtils.mkdir_p(destination_path)
+      invoker = invoke_cli %W(-D #{destination_path} -R test/fixtures), sample_inpath
+      doc = invoker.document
+      assert File.directory?(destination_subdir_path)
+      assert File.exist?(sample_outpath)
+    ensure
+      FileUtils.rm_f(sample_outpath)
+      FileUtils.rmdir(destination_subdir_path)
       FileUtils.rmdir(destination_path)
     end
   end
@@ -394,6 +412,38 @@ context 'Invoker' do
     assert_xpath '/*[@id="preamble"]', output, 1
   end
 
+  test 'should write page for each alternate manname' do
+    outdir = File.expand_path(File.join(File.dirname(__FILE__), 'fixtures'))
+    outfile_1 = File.join outdir, 'eve.1'
+    outfile_2 = File.join outdir, 'islifeform.1'
+    input = <<-EOS
+= eve(1)
+Andrew Stanton
+v1.0.0
+:doctype: manpage
+:manmanual: EVE
+:mansource: EVE
+
+== NAME
+
+eve, islifeform - analyzes an image to determine if it's a picture of a life form
+
+== SYNOPSIS
+
+*eve* ['OPTION']... 'FILE'...
+    EOS
+
+    begin
+      invoke_cli(%W(-b manpage -o #{outfile_1}), '-') { input }
+      assert File.exist?(outfile_1)
+      assert File.exist?(outfile_2)
+      assert_equal '.so eve.1', (IO.read outfile_2).chomp
+    ensure
+      FileUtils.rm_f outfile_1
+      FileUtils.rm_f outfile_2
+    end
+  end
+
   test 'should output a trailing endline to stdout' do
     invoker = nil
     output = nil
@@ -470,10 +520,10 @@ context 'Invoker' do
     custom_backend_root = File.expand_path(File.join(File.dirname(__FILE__), 'fixtures', 'custom-backends'))
     invoker = invoke_cli_to_buffer %W(-E haml -T #{custom_backend_root} -o -)
     doc = invoker.document
-    assert doc.converter.is_a? Asciidoctor::Converter::CompositeConverter
+    assert_kind_of Asciidoctor::Converter::CompositeConverter, doc.converter
     selected = doc.converter.find_converter 'paragraph'
-    assert selected.is_a? Asciidoctor::Converter::TemplateConverter
-    assert selected.templates['paragraph'].is_a? Tilt::HamlTemplate
+    assert_kind_of Asciidoctor::Converter::TemplateConverter, selected
+    assert_kind_of Tilt::HamlTemplate, selected.templates['paragraph']
   end
 
   test 'should load custom templates from multiple template directories' do
@@ -586,7 +636,7 @@ context 'Invoker' do
       refute_empty stdout_lines
       stdout_lines.each {|l| l.force_encoding Encoding::UTF_8 } if Asciidoctor::FORCE_ENCODING
       stdout_str = stdout_lines.join
-      assert stdout_str.include?('Codierungen sind verrückt auf älteren Versionen von Ruby')
+      assert_includes stdout_str, 'Codierungen sind verrückt auf älteren Versionen von Ruby'
     ensure
       ENV['LANG'] = old_lang
     end

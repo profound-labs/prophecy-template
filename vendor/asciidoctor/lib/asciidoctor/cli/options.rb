@@ -1,6 +1,8 @@
 # encoding: UTF-8
 module Asciidoctor
   module Cli
+    FS = '/'
+    RS = '\\'
 
     # Public: List of options that can be specified on the command line
     class Options < ::Hash
@@ -24,6 +26,7 @@ module Asciidoctor
         self[:load_paths] = options[:load_paths] || nil
         self[:requires] = options[:requires] || nil
         self[:base_dir] = options[:base_dir]
+        self[:source_dir] = options[:source_dir] || nil
         self[:destination_dir] = options[:destination_dir] || nil
         self[:trace] = false
         self[:timings] = false
@@ -104,6 +107,9 @@ Example: asciidoctor -b html5 source.asciidoc
           opts.on('-B', '--base-dir DIR', 'base directory containing the document and resources (default: directory of source file)') do |base_dir|
             self[:base_dir] = base_dir
           end
+          opts.on('-R', '--source-dir DIR', 'source root directory (used for calculating path in destination directory)') do |src_dir|
+            self[:source_dir] = src_dir
+          end
           opts.on('-D', '--destination-dir DIR', 'destination output directory (default: directory of source file)') do |dest_dir|
             self[:destination_dir] = dest_dir
           end
@@ -171,31 +177,39 @@ Example: asciidoctor -b html5 source.asciidoc
               # warn, but don't panic; we may have enough to proceed, so we won't force a failure
               $stderr.puts %(asciidoctor: WARNING: extra arguments detected (unparsed arguments: '#{args * "', '"}') or incorrect usage of stdin)
             else
-              if ::File.readable? file
-                matches = [file]
+              if ::File.file? file
+                infiles << file
+              # NOTE only attempt to glob if file is not found
               else
                 # Tilt backslashes in Windows paths the Ruby-friendly way
-                if ::File::ALT_SEPARATOR == '\\' && (file.include? '\\')
-                  file = file.tr '\\', '/'
+                if ::File::ALT_SEPARATOR == RS && (file.include? RS)
+                  file = file.tr RS, FS
                 end
                 if (matches = ::Dir.glob file).empty?
-                  $stderr.puts %(asciidoctor: FAILED: input file #{file} missing or cannot be read)
-                  return 1
+                  # NOTE if no matches, assume it's just a missing file and proceed
+                  infiles << file
+                else
+                  infiles.concat matches
                 end
               end
-
-              infiles.concat matches
             end
           end
         end
 
-        infiles.each do |file|
-          unless file == '-' || (::File.file? file) || (::File.pipe? file)
-            if ::File.readable? file
-              $stderr.puts %(asciidoctor: FAILED: input path #{file} is a #{(::File.stat file).ftype}, not a file)
+        infiles.reject {|file| file == '-' }.each do |file|
+          begin
+            fstat = ::File.stat file
+            if fstat.file? || fstat.pipe?
+              unless fstat.readable?
+                $stderr.puts %(asciidoctor: FAILED: input file #{file} is not readable)
+                return 1
+              end
             else
-              $stderr.puts %(asciidoctor: FAILED: input file #{file} missing or cannot be read)
+              $stderr.puts %(asciidoctor: FAILED: input path #{file} is a #{fstat.ftype}, not a file)
+              return 1
             end
+          rescue ::Errno::ENOENT
+            $stderr.puts %(asciidoctor: FAILED: input file #{file} is missing)
             return 1
           end
         end
@@ -252,9 +266,10 @@ Example: asciidoctor -b html5 source.asciidoc
 
       def print_version os = $stdout
         os.puts %(Asciidoctor #{::Asciidoctor::VERSION} [http://asciidoctor.org])
-        if RUBY_VERSION >= '1.9.3'
-          encoding_info = {'lc' => 'locale', 'fs' => 'filesystem', 'in' => 'internal', 'ex' => 'external'}.map do |k,v|
-            %(#{k}:#{::Encoding.find(v) || '-'})
+        if RUBY_MIN_VERSION_1_9
+          encoding_info = { 'lc' => 'locale', 'fs' => 'filesystem', 'in' => 'internal', 'ex' => 'external' }.map do |k, v|
+            #%(#{k}:#{v == 'internal' ? ''.encode.encoding : (::Encoding.find v)})
+            %(#{k}:#{v == 'internal' ? (::File.open(__FILE__) {|f| f.getc }).encoding : (::Encoding.find v)})
           end
           os.puts %(Runtime Environment (#{RUBY_DESCRIPTION}) (#{encoding_info * ' '}))
         else

@@ -10,14 +10,17 @@ class ExtensionsInitTest < Minitest::Test
     refute doc.extensions?, 'Extensions should not be enabled by default'
 
     begin
-      # NOTE trigger extensions to autoload
-      Asciidoctor::Extensions.groups
+      # NOTE trigger extensions to autoload by registering empty group
+      Asciidoctor::Extensions.register do
+      end
     rescue; end
 
     doc = empty_document
     assert doc.extensions?, 'Extensions should be enabled after being autoloaded'
 
     self.class.remove_tests self.class
+  ensure
+    Asciidoctor::Extensions.unregister_all
   end
   self
 end.new(nil).test_autoload
@@ -180,8 +183,32 @@ class SampleExtensionGroup < Asciidoctor::Extensions::Group
   end
 end
 
+def create_cat_in_sink_block_macro
+  Asciidoctor::Extensions.create do
+    block_macro do
+      named :cat_in_sink
+      process do |parent, target, attrs|
+        image_attrs = {}
+        unless target.nil_or_empty?
+          image_attrs['target'] = %(cat-in-sink-day-#{target}.png)
+        end
+        if (alt = attrs.delete 1)
+          image_attrs['alt'] = alt
+        end
+        create_image_block parent, image_attrs
+      end
+    end
+  end
+end
+
 context 'Extensions' do
   context 'Register' do
+    test 'should not activate registry if no extension groups are registered' do
+      assert defined? Asciidoctor::Extensions
+      doc = empty_document
+      refute doc.extensions?, 'Extensions should not be enabled if not groups are registered'
+    end
+
     test 'should register extension group class' do
       begin
         Asciidoctor::Extensions.register :sample, SampleExtensionGroup
@@ -220,7 +247,7 @@ context 'Extensions' do
         Asciidoctor::Extensions.register :sample, SampleExtensionGroup.new
         refute_nil Asciidoctor::Extensions.groups
         assert_equal 1, Asciidoctor::Extensions.groups.size
-        assert Asciidoctor::Extensions.groups[:sample].is_a? SampleExtensionGroup
+        assert_kind_of SampleExtensionGroup, Asciidoctor::Extensions.groups[:sample]
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -232,7 +259,7 @@ context 'Extensions' do
         end
         refute_nil Asciidoctor::Extensions.groups
         assert_equal 1, Asciidoctor::Extensions.groups.size
-        assert Asciidoctor::Extensions.groups[:sample].is_a? Proc
+        assert_kind_of Proc, Asciidoctor::Extensions.groups[:sample]
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -389,7 +416,7 @@ context 'Extensions' do
         SampleExtensionGroup.register
         doc = Asciidoctor::Document.new
         assert doc.extensions?
-        assert doc.extensions.is_a? Asciidoctor::Extensions::Registry
+        assert_kind_of Asciidoctor::Extensions::Registry, doc.extensions
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -405,9 +432,9 @@ context 'Extensions' do
       assert registry.preprocessors?
       extensions = registry.preprocessors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extensions.first.instance.is_a? SamplePreprocessor
-      assert extensions.first.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
+      assert_kind_of SamplePreprocessor, extensions.first.instance
+      assert_kind_of Method, extensions.first.process_method
     end
 
     test 'should instantiate include processors' do
@@ -417,9 +444,9 @@ context 'Extensions' do
       assert registry.include_processors?
       extensions = registry.include_processors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extensions.first.instance.is_a? SampleIncludeProcessor
-      assert extensions.first.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
+      assert_kind_of SampleIncludeProcessor, extensions.first.instance
+      assert_kind_of Method, extensions.first.process_method
     end
 
     test 'should instantiate docinfo processors' do
@@ -430,9 +457,9 @@ context 'Extensions' do
       assert registry.docinfo_processors?(:head)
       extensions = registry.docinfo_processors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extensions.first.instance.is_a? SampleDocinfoProcessor
-      assert extensions.first.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
+      assert_kind_of SampleDocinfoProcessor, extensions.first.instance
+      assert_kind_of Method, extensions.first.process_method
     end
 
     # NOTE intentionally using the legacy names
@@ -443,9 +470,9 @@ context 'Extensions' do
       assert registry.treeprocessors?
       extensions = registry.treeprocessors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extensions.first.instance.is_a? SampleTreeprocessor
-      assert extensions.first.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
+      assert_kind_of SampleTreeprocessor, extensions.first.instance
+      assert_kind_of Method, extensions.first.process_method
     end
 
     test 'should instantiate postprocessors' do
@@ -455,9 +482,9 @@ context 'Extensions' do
       assert registry.postprocessors?
       extensions = registry.postprocessors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extensions.first.instance.is_a? SamplePostprocessor
-      assert extensions.first.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
+      assert_kind_of SamplePostprocessor, extensions.first.instance
+      assert_kind_of Method, extensions.first.process_method
     end
 
     test 'should instantiate block processor' do
@@ -467,9 +494,9 @@ context 'Extensions' do
       assert registry.blocks?
       assert registry.registered_for_block? :sample, :paragraph
       extension = registry.find_block_extension :sample
-      assert extension.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extension.instance.is_a? SampleBlock
-      assert extension.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extension
+      assert_kind_of SampleBlock, extension.instance
+      assert_kind_of Method, extension.process_method
     end
 
     test 'should not match block processor for unsupported context' do
@@ -486,9 +513,9 @@ context 'Extensions' do
       assert registry.block_macros?
       assert registry.registered_for_block_macro? 'sample'
       extension = registry.find_block_macro_extension 'sample'
-      assert extension.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extension.instance.is_a? SampleBlockMacro
-      assert extension.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extension
+      assert_kind_of SampleBlockMacro, extension.instance
+      assert_kind_of Method, extension.process_method
     end
 
     test 'should instantiate inline macro processor' do
@@ -498,9 +525,9 @@ context 'Extensions' do
       assert registry.inline_macros?
       assert registry.registered_for_inline_macro? 'sample'
       extension = registry.find_inline_macro_extension 'sample'
-      assert extension.is_a? Asciidoctor::Extensions::ProcessorExtension
-      assert extension.instance.is_a? SampleInlineMacro
-      assert extension.process_method.is_a? ::Method
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extension
+      assert_kind_of SampleInlineMacro, extension.instance
+      assert_kind_of Method, extension.process_method
     end
 
     test 'should allow processors to be registered by a string name' do
@@ -510,12 +537,12 @@ context 'Extensions' do
       assert registry.preprocessors?
       extensions = registry.preprocessors
       assert_equal 1, extensions.size
-      assert extensions.first.is_a? Asciidoctor::Extensions::ProcessorExtension
+      assert_kind_of Asciidoctor::Extensions::ProcessorExtension, extensions.first
     end
   end
 
   context 'Integration' do
-    test 'can provide extension registry as option' do
+    test 'can provide extension registry as an option' do
       registry = Asciidoctor::Extensions.create do
         tree_processor SampleTreeProcessor
       end
@@ -523,6 +550,19 @@ context 'Extensions' do
       doc = document_from_string %(= Document Title\n\ncontent), :extension_registry => registry
       refute_nil doc.extensions
       assert_equal 1, doc.extensions.groups.size
+      assert doc.extensions.tree_processors?
+      assert_equal 1, doc.extensions.tree_processors.size
+      assert_equal 0, Asciidoctor::Extensions.groups.size
+    end
+
+    # NOTE I'm not convinced we want to continue to support this use case
+    test 'can provide extension registry created without any groups as option' do
+      registry = Asciidoctor::Extensions.create
+      registry.tree_processor SampleTreeProcessor
+
+      doc = document_from_string %(= Document Title\n\ncontent), :extension_registry => registry
+      refute_nil doc.extensions
+      assert_equal 0, doc.extensions.groups.size
       assert doc.extensions.tree_processors?
       assert_equal 1, doc.extensions.tree_processors.size
       assert_equal 0, Asciidoctor::Extensions.groups.size
@@ -579,9 +619,9 @@ after
 
         result = render_string input, :safe => :server
         assert_css '.paragraph > p', result, 3
-        assert result.include?('before')
-        assert result.include?('Lorem ipsum')
-        assert result.include?('after')
+        assert_includes result, 'before'
+        assert_includes result, 'Lorem ipsum'
+        assert_includes result, 'after'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -596,19 +636,21 @@ include::include-file.asciidoc[]
 last line
       EOS
 
-      # Safe Mode is not required here
-      document = empty_document :base_dir => File.expand_path(File.dirname(__FILE__))
-      document.extensions.include_processor do
-        handles? do |target|
-          target == 'include-file.asciidoc'
-        end
+      registry = Asciidoctor::Extensions.create do
+        include_processor do
+          handles? do |target|
+            target == 'include-file.asciidoc'
+          end
 
-        process do |doc, reader, target, attributes|
-          # demonstrate that push_include normalizes endlines
-          content = ["include target:: #{target}\n", "\n", "middle line\n"]
-          reader.push_include content, target, target, 1, attributes
+          process do |doc, reader, target, attributes|
+            # demonstrate that push_include normalizes endlines
+            content = ["include target:: #{target}\n", "\n", "middle line\n"]
+            reader.push_include content, target, target, 1, attributes
+          end
         end
       end
+      # Safe Mode is not required here
+      document = empty_document :base_dir => File.expand_path(File.dirname(__FILE__)), :extension_registry => registry
       reader = Asciidoctor::PreprocessorReader.new document, input, nil, :normalize => true
       lines = []
       lines << reader.read_line
@@ -771,7 +813,7 @@ snippet::12345[mode=edit]
         end
 
         output = render_embedded_string input
-        assert output.include?('<script src="http://example.com/12345.js?_mode=edit"></script>')
+        assert_includes output, '<script src="http://example.com/12345.js?_mode=edit"></script>'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -810,10 +852,10 @@ custom_toc::[]
         end
 
         output = render_embedded_string 'Room temperature is deg:25[C,precision=0].', :attributes => { 'temperature-unit' => 'F' }
-        assert output.include?('Room temperature is 25 &#176;C.')
+        assert_includes output, 'Room temperature is 25 &#176;C.'
 
         output = render_embedded_string 'Normal body temperature is deg:37[].', :attributes => { 'temperature-unit' => 'F' }
-        assert output.include?('Normal body temperature is 98.6 &#176;F.')
+        assert_includes output, 'Normal body temperature is 98.6 &#176;F.'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -833,7 +875,7 @@ custom_toc::[]
         end
 
         output = render_embedded_string 'label:[Checkbox]'
-        assert output.include?('<label>Checkbox</label>')
+        assert_includes output, '<label>Checkbox</label>'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -934,7 +976,7 @@ target="target", attributes=[]
         end
 
         output = render_embedded_string 'mention:mojavelinux[Dan]'
-        assert output.include?('<a href="https://github.com/mojavelinux">Dan</a>')
+        assert_includes output, '<a href="https://github.com/mojavelinux">Dan</a>'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -1161,7 +1203,6 @@ sample content
       end
     end
 
-
     test 'should append docinfo to document' do
       begin
         Asciidoctor::Extensions.register do
@@ -1180,6 +1221,43 @@ sample content
       ensure
         Asciidoctor::Extensions.unregister_all
       end
+    end
+
+    test 'should raise an exception if mandatory target attribute is not provided for image block' do
+      input = <<-EOS
+.Cat in Sink?
+cat_in_sink::[]
+      EOS
+      exception = assert_raises ArgumentError do
+        render_embedded_string input, :extension_registry => create_cat_in_sink_block_macro
+      end
+      assert_match(/target attribute is required/, exception.message)
+    end
+
+    test 'should assign alt attribute to image block if alt is not provided' do
+      input = <<-EOS
+.Cat in Sink?
+cat_in_sink::25[]
+      EOS
+      doc = document_from_string input, :header_footer => false, :extension_registry => create_cat_in_sink_block_macro
+      image = doc.blocks[0]
+      assert_equal 'cat in sink day 25', (image.attr 'alt')
+      assert_equal 'cat in sink day 25', (image.attr 'default-alt')
+      output = doc.convert
+      assert_includes output, '<img src="cat-in-sink-day-25.png" alt="cat in sink day 25">'
+    end
+
+    test 'should create an image block if mandatory attributes are provided' do
+      input = <<-EOS
+.Cat in Sink?
+cat_in_sink::30[cat in sink (yes)]
+      EOS
+      doc = document_from_string input, :header_footer => false, :extension_registry => create_cat_in_sink_block_macro
+      image = doc.blocks[0]
+      assert_equal 'cat in sink (yes)', (image.attr 'alt')
+      refute(image.attr? 'default-alt')
+      output = doc.convert
+      assert_includes output, '<img src="cat-in-sink-day-30.png" alt="cat in sink (yes)">'
     end
   end
 end

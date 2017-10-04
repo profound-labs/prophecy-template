@@ -238,7 +238,7 @@ module Substitutors
           next m[0][1..-1]
         end
 
-        @passthroughs[pass_key = @passthroughs.size] = {:text => (unescape_brackets m[8]), :subs => (m[7] ? (resolve_pass_subs m[7]) : [])}
+        @passthroughs[pass_key = @passthroughs.size] = {:text => (unescape_brackets m[8]), :subs => (m[7] ? (resolve_pass_subs m[7]) : nil)}
       end
 
       %(#{preceding}#{PASS_START}#{pass_key}#{PASS_END})
@@ -314,7 +314,7 @@ module Substitutors
         type = ((default_stem_type = @document.attributes['stem']).nil_or_empty? ? 'asciimath' : default_stem_type).to_sym
       end
       content = unescape_brackets m[3]
-      subs = m[2] ? (resolve_pass_subs m[2]) : ((@document.basebackend? 'html') ? BASIC_SUBS : [])
+      subs = m[2] ? (resolve_pass_subs m[2]) : ((@document.basebackend? 'html') ? BASIC_SUBS : nil)
       @passthroughs[pass_key = @passthroughs.size] = {:text => content, :subs => subs, :type => type}
       %(#{PASS_START}#{pass_key}#{PASS_END})
     } if (text.include? ':') && ((text.include? 'stem:') || (text.include? 'math:'))
@@ -366,10 +366,6 @@ module Substitutors
       end
       text
     end
-
-    def sub_specialchars text
-      (text.include? '<') || (text.include? '&') || (text.include? '>') ? (text.gsub SpecialCharsRx, SpecialCharsTr) : text
-    end
   else
     # Public: Substitute quoted text (includes emphasis, strong, monospaced, etc)
     #
@@ -404,23 +400,23 @@ module Substitutors
       end
       text
     end
+  end
 
-    # Public: Substitute special characters (i.e., encode XML)
-    #
-    # The special characters are <, &, and >, which get replaced with &lt;,
-    # &amp;, and &gt;, respectively.
-    #
-    # text - The String text to process
-    #
-    # returns The String text with special characters replaced
-    if ::RUBY_MIN_VERSION_1_9
-      def sub_specialchars text
-        (text.include? '<') || (text.include? '&') || (text.include? '>') ? (text.gsub! SpecialCharsRx, SpecialCharsTr) : text
-      end
-    else
-      def sub_specialchars text
-        (text.include? '<') || (text.include? '&') || (text.include? '>') ? (text.gsub!(SpecialCharsRx) { SpecialCharsTr[$&] }) : text
-      end
+  # Public: Substitute special characters (i.e., encode XML)
+  #
+  # The special characters <, &, and > get replaced with &lt;,
+  # &amp;, and &gt;, respectively.
+  #
+  # text - The String text to process.
+  #
+  # returns The String text with special characters replaced.
+  if ::RUBY_MIN_VERSION_1_9
+    def sub_specialchars text
+      (text.include? '<') || (text.include? '&') || (text.include? '>') ? (text.gsub SpecialCharsRx, SpecialCharsTr) : text
+    end
+  else
+    def sub_specialchars text
+      (text.include? '<') || (text.include? '&') || (text.include? '>') ? (text.gsub(SpecialCharsRx) { SpecialCharsTr[$&] }) : text
     end
   end
   alias sub_specialcharacters sub_specialchars
@@ -529,11 +525,9 @@ module Substitutors
     found_colon = source.include? ':'
     found_macroish = found[:macroish] = found_square_bracket && found_colon
     found_macroish_short = found_macroish && (source.include? ':[')
-    doc_attrs = @document.attributes
-    use_link_attrs = doc_attrs.key? 'linkattrs'
     result = source
 
-    if doc_attrs.key? 'experimental'
+    if (doc_attrs = @document.attributes).key? 'experimental'
       if found_macroish_short && ((result.include? 'kbd:') || (result.include? 'btn:'))
         result = result.gsub(InlineKbdBtnMacroRx) {
           # honor the escape
@@ -671,44 +665,53 @@ module Substitutors
       }
     end
 
-    if ((result.include? '((') && (result.include? '))')) ||
-        (found_macroish_short && (result.include? 'indexterm'))
+    if ((result.include? '((') && (result.include? '))')) || (found_macroish_short && (result.include? 'indexterm'))
       # (((Tigers,Big cats)))
       # indexterm:[Tigers,Big cats]
       # ((Tigers))
       # indexterm2:[Tigers]
       result = result.gsub(InlineIndextermMacroRx) {
-        # alias match for Ruby 1.8.7 compat
-        m = $~
-
-        # honor the escape
-        if m[0].start_with? RS
-          next m[0][1..-1]
-        end
-
-        case m[1]
+        case $1
         when 'indexterm'
+          text = $2
+          # honor the escape
+          if (m0 = $&).start_with? RS
+            next m0.slice 1, m0.length
+          end
           # indexterm:[Tigers,Big cats]
-          terms = split_simple_csv(normalize_string m[2], true)
+          terms = split_simple_csv normalize_string text, true
           @document.register :indexterms, terms
           (Inline.new self, :indexterm, nil, :attributes => { 'terms' => terms }).convert
         when 'indexterm2'
+          text = $2
+          # honor the escape
+          if (m0 = $&).start_with? RS
+            next m0.slice 1, m0.length
+          end
           # indexterm2:[Tigers]
-          term = normalize_string m[2], true
+          term = normalize_string text, true
           @document.register :indexterms, [term]
           (Inline.new self, :indexterm, term, :type => :visible).convert
         else
-          text, visible, before, after = m[3], true, nil, nil
-          if text.start_with? '('
-            if text.end_with? ')'
-              text, visible = (text.slice 1, text.length - 2), false
+          text = $3
+          # honor the escape
+          if (m0 = $&).start_with? RS
+            # escape concealed index term, but process nested flow index term
+            if (text.start_with? '(') && (text.end_with? ')')
+              text = text.slice 1, text.length - 2
+              visible, before, after = true, '(', ')'
             else
-              text, before, after = (text.slice 1, text.length - 1), '(', ''
+              next m0.slice 1, m0.length
             end
-          elsif text.end_with? ')'
+          else
+            visible = true
             if text.start_with? '('
-              text, visible = (text.slice 1, text.length - 2), false
-            else
+              if text.end_with? ')'
+                text, visible = (text.slice 1, text.length - 2), false
+              else
+                text, before, after = (text.slice 1, text.length - 1), '(', ''
+              end
+            elsif text.end_with? ')'
               text, before, after = (text.slice 0, text.length - 1), '', ')'
             end
           end
@@ -784,7 +787,7 @@ module Substitutors
         attrs, link_opts = nil, { :type => :link }
         unless text.empty?
           text = text.gsub ESC_R_SB, R_SB if text.include? R_SB
-          if use_link_attrs && ((text.start_with? '"') || ((text.include? ',') && (text.include? '=')))
+          if (doc_attrs.key? 'linkattrs') && ((text.start_with? '"') || ((text.include? ',') && (text.include? '=')))
             attrs = parse_attributes text, []
             link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
             text = attrs[1] || ''
@@ -837,7 +840,7 @@ module Substitutors
         attrs, link_opts = nil, { :type => :link }
         unless (text = m[3]).empty?
           text = text.gsub ESC_R_SB, R_SB if text.include? R_SB
-          if use_link_attrs && ((text.start_with? '"') || ((text.include? ',') && (mailto || (text.include? '='))))
+          if (doc_attrs.key? 'linkattrs') && ((text.start_with? '"') || ((text.include? ',') && (mailto || (text.include? '='))))
             attrs = parse_attributes text, []
             link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
             if mailto
@@ -1010,23 +1013,25 @@ module Substitutors
             if (fragment_len = id.length - hash_idx - 1) > 0
               path, fragment = (id.slice 0, hash_idx), (id.slice hash_idx + 1, fragment_len)
             else
-              path, fragment = (id.slice 0, hash_idx), nil
+              path = id.slice 0, hash_idx
+            end
+            if (ext_idx = path.rindex '.') && ASCIIDOC_EXTENSIONS[path.slice ext_idx, path.length]
+              path = path.slice 0, ext_idx
             end
           else
-            target, path, fragment = id, nil, (id.slice 1, id.length)
+            target, fragment = id, (id.slice 1, id.length)
           end
+        elsif (ext_idx = id.rindex '.') && ASCIIDOC_EXTENSIONS[id.slice ext_idx, id.length]
+          path = id.slice 0, ext_idx
         else
-          path, fragment = nil, id
+          fragment = id
         end
 
         # handles: #id
         if target
           refid = fragment
-        # handles: path#, path.adoc#, path#id, or path.adoc#id
+        # handles: path#, path.adoc#, path#id, path.adoc#id, or path (from path.adoc)
         elsif path
-          if (ext_idx = path.rindex '.') && ASCIIDOC_EXTENSIONS[path.slice ext_idx, path.length]
-            path = path.slice 0, ext_idx
-          end
           # the referenced path is this document, or its contents has been included in this document
           if @document.attributes['docname'] == path || @document.catalog[:includes].include?(path)
             refid, path, target = fragment, nil, %(##{fragment})
@@ -1253,9 +1258,9 @@ module Substitutors
   #
   # subs - A comma-delimited String of substitution aliases
   #
-  # returns An Array of Symbols representing the substitution operation
+  # returns An Array of Symbols representing the substitution operation or nothing if no subs are found.
   def resolve_subs subs, type = :block, defaults = nil, subject = nil
-    return [] if subs.nil_or_empty?
+    return if subs.nil_or_empty?
     # QUESTION should we store candidates as a Set instead of an Array?
     candidates = nil
     subs = subs.delete ' ' if subs.include? ' '
@@ -1306,7 +1311,7 @@ module Substitutors
         candidates += resolved_keys
       end
     end
-    return [] unless candidates
+    return unless candidates
     # weed out invalid options and remove duplicates (order is preserved; first occurence wins)
     resolved = candidates & SUB_OPTIONS[type]
     unless (candidates - resolved).empty?
@@ -1339,19 +1344,21 @@ module Substitutors
   def highlight_source source, process_callouts, highlighter = nil
     case (highlighter ||= @document.attributes['source-highlighter'])
     when 'coderay'
-      unless (highlighter_loaded = defined? ::CodeRay) || @document.attributes['coderay-unavailable']
+      unless (highlighter_loaded = defined? ::CodeRay) ||
+          (defined? @@coderay_unavailable) || @document.attributes['coderay-unavailable']
         if (Helpers.require_library 'coderay', true, :warn).nil?
-          # prevent further attempts to load CodeRay
-          @document.set_attr 'coderay-unavailable'
+          # prevent further attempts to load CodeRay in this process
+          @@coderay_unavailable = true
         else
           highlighter_loaded = true
         end
       end
     when 'pygments'
-      unless (highlighter_loaded = defined? ::Pygments) || @document.attributes['pygments-unavailable']
+      unless (highlighter_loaded = defined? ::Pygments) ||
+          (defined? @@pygments_unavailable) || @document.attributes['pygments-unavailable']
         if (Helpers.require_library 'pygments', 'pygments.rb', :warn).nil?
-          # prevent further attempts to load Pygments
-          @document.set_attr 'pygments-unavailable'
+          # prevent further attempts to load Pygments in this process
+          @@pygments_unavailable = true
         else
           highlighter_loaded = true
         end
@@ -1540,7 +1547,11 @@ module Substitutors
       end
     end
 
-    @subs = (custom_subs = @attributes['subs']) ? (resolve_block_subs custom_subs, default_subs, @context) : default_subs.dup
+    if (custom_subs = @attributes['subs'])
+      @subs = (resolve_block_subs custom_subs, default_subs, @context) || []
+    else
+      @subs = default_subs.dup
+    end
 
     # QUESION delegate this logic to a method?
     if @context == :listing && @style == 'source' && (@attributes.key? 'language') && (@document.basebackend? 'html') &&

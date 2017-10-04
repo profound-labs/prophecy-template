@@ -16,6 +16,42 @@ context 'Attributes' do
       assert_equal nil, doc.attributes['foo']
     end
 
+    # NOTE AsciiDoc Python recognizes this entry
+    test 'does not recognize attribute entry if name contains colon' do
+      input = <<-EOS.chomp
+:foo:bar: baz
+      EOS
+      doc = document_from_string input
+      refute doc.attr?('foo:bar')
+      assert_equal 1, doc.blocks.size
+      assert_equal :paragraph, doc.blocks[0].context
+    end
+
+    # NOTE AsciiDoc Python recognizes this entry
+    test 'does not recognize attribute entry if name ends with colon' do
+      input = <<-EOS.chomp
+:foo:: bar
+      EOS
+      doc = document_from_string input
+      refute doc.attr?('foo:')
+      assert_equal 1, doc.blocks.size
+      assert_equal :dlist, doc.blocks[0].context
+    end
+
+    # NOTE AsciiDoc Python does not recognize this entry
+    test 'allows any word character defined by Unicode in an attribute name' do
+      [['café', 'a coffee shop'], ['سمن', %(سازمان مردمنهاد)]].each do |(name, value)|
+        str = <<-EOS
+:#{name}: #{value}
+
+{#{name}}
+        EOS
+        result = render_embedded_string str
+        assert_includes result, %(<p>#{value}</p>)
+      end
+
+    end if ::RUBY_MIN_VERSION_1_9
+
     test 'creates an attribute by fusing a legacy multi-line value' do
       str = <<-EOS
 :description: This is the first      +
@@ -127,7 +163,7 @@ linus.torvalds@example.com
       EOS
 
       result = render_embedded_string input
-      assert result.include? 'bigfoot'
+      assert_includes result, 'bigfoot'
     end
 
     test 'resolves attributes and pass macro inside attribute value outside header' do
@@ -142,7 +178,7 @@ content
       EOS
 
       result = render_embedded_string input
-      assert result.include? '<em>big</em>foot'
+      assert_includes result, '<em>big</em>foot'
     end
 
     test 'should limit maximum size of attribute value if safe mode is SECURE' do
@@ -376,6 +412,13 @@ content
       assert doc.attributes.has_key? 'backend-html5'
       assert_equal 'html', doc.attributes['basebackend']
       assert doc.attributes.has_key? 'basebackend-html'
+    end
+
+    test 'can only access a positional attribute from the attributes hash' do
+      node = Asciidoctor::Block.new nil, :paragraph, :attributes => { 1 => 'position 1' }
+      assert_nil node.attr(1)
+      refute node.attr?(1)
+      assert_equal 'position 1', node.attributes[1]
     end
 
     test 'set_attr should set value to empty string if no value is specified' do
@@ -661,8 +704,8 @@ v1.0, 2010-01-01: First release!
       assert_equal 'value', doc.attr('a2')
 
       output = doc.render
-      assert output.include?('value == value')
-      assert output.include?('2010-01-01 == 2010-01-01')
+      assert_includes output, 'value == value'
+      assert_includes output, '2010-01-01 == 2010-01-01'
     end
 
     test 'substitutes inside block title' do
@@ -749,14 +792,14 @@ puts 'The forecast for today is {forecast}'
     end
 
     test 'does not substitute attributes inside literal blocks' do
-       input = <<-EOS
+      input = <<-EOS
 :foo: bar
 
 ....
 You insert the text {foo} to expand the value
 of the attribute named foo in your document.
 ....
-       EOS
+      EOS
       output = render_string(input)
       assert_match(/\{foo\}/, output)
     end

@@ -1,0 +1,98 @@
+section
+  &#dedication > header h1,
+  &#acknowledgements > header h1
+    font-family: $section-font !important
+    font-style: normal
+    font-size: 12pt
+    margin-top: 0pt
+    text-transform: uppercase
+
+  &#abbreviations
+    > header h1
+      font-family: $section-font !important
+      font-style: normal
+      font-size: 12pt
+      margin-top: 0pt
+      text-transform: uppercase
+
+    .chapter-header
+      margin-bottom: 1em
+
+    table.table td
+      line-height: 1.2
+      padding: 0.2em 0.5em 0.2em 0.1em
+
+  &#appendix-thai
+    .table em
+      font-family: "Sarabun"
+      font-style: normal
+      font-weight: normal
+
+  // title page header
+  &#stillness-flowing
+    .subtitle
+      margin: 0
+    > header h1
+      text-align: center
+
+#titlepage-description
+  text-align: center
+
+p.subtitle
+  font-style: italic
+  font-size: 1.2em
+  padding: 0 0 0.25em 1.5em
+  margin-bottom: 40px
+
+.titlepage-author
+  text-align: center
+  margin-top: 8em
+
+.blockquote.opening-verse blockquote
+  font-size: 1.1em
+
+.blockquote.opening-verse blockquote > p:first-child::before
+  display: inline-block
+  color: $para-first-text
+  text-shadow: 0 1px 2px rgba(102, 102, 101, 0.3)
+  /* using serif quote from entypo */
+  font-family: "FontIcons"
+  content: "\f10d"
+  padding-right: .5em
+  font-size: 1.5em
+  line-height: 1.3
+  margin-top: -0.5em
+  vertical-align: text-bottom
+
+.blockquote.lpchah blockquote,
+.blockquote.dialogue blockquote
+  font-style: normal
+
+.blockquote.quote blockquote
+  font-style: italic
+
+// NOTE: line-height must be relative value. 0pt is an absolute value and triggers warnings from kindlegen:
+// Absolute value specified for CSS property in content is not supported by Kindle readers. Please use % or refer Kindle Publishing Guidelines about usage of property: 'line-height'
+
+// we want this to not take up any space, but "display: none" can disable the anchor linking behaviour
+.top-anchor
+  font-size: 0pt
+  line-height: 0
+  margin: 0pt
+  padding: 0pt
+
+nav#guide
+  display: none
+
+caption, figcaption
+  color: $black
+
+figure.image div.content
+  text-align: center
+
+figure.image img
+  &.sectionbreak
+    margin: 0 auto
+    padding: 15px 0 5px 0
+  &.quotebreak
+    margin: 0 auto

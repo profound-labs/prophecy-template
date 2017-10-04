@@ -281,7 +281,7 @@ module Asciidoctor
 
   CALLOUT_LIST_HEADS = ['<', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].to_set
 
-  PARAGRAPH_STYLES = ['comment', 'example', 'literal', 'listing', 'normal', 'pass', 'quote', 'sidebar', 'source', 'verse', 'abstract', 'partintro'].to_set
+  PARAGRAPH_STYLES = ['comment', 'example', 'literal', 'listing', 'normal', 'open', 'pass', 'quote', 'sidebar', 'source', 'verse', 'abstract', 'partintro'].to_set
 
   VERBATIM_STYLES = ['literal', 'listing', 'source', 'verse'].to_set
 
@@ -363,7 +363,7 @@ module Asciidoctor
   CIRCUMFIX_COMMENTS = {
     ['/*', '*/'] => ['.css'],
     ['(*', '*)'] => ['.ml', '.mli', '.nb'],
-    ['<!--', '-->'] => ['.html', '.xhtml', '.xml', '.xsl'],
+    ['<!--', '-->'] => ['.html', '.xhtml', '.xml', '.xsl', '.plist'],
     ['<%--', '--%>'] => ['.asp', '.jsp']
   }.inject({}) {|accum, (affixes, exts)|
     exts.each {|ext| accum[ext] = { :prefix => affixes[0], :suffix => affixes[-1] } }
@@ -485,7 +485,7 @@ module Asciidoctor
     #   include::chapter1.ad[]
     #   include::example.txt[lines=1;2;5..10]
     #
-    IncludeDirectiveRx = /^(\\)?include::([^\[][^\[]*)\[(.*)\]$/
+    IncludeDirectiveRx = /^(\\)?include::([^\[][^\[]*)\[(.+)?\]$/
 
     # Matches a trailing tag directive in an include file.
     #
@@ -515,10 +515,10 @@ module Asciidoctor
     #                collapsing the line breaks and indentation to \
     #                a single space.
     #
-    AttributeEntryRx = /^:(!?\w.*?):(?:[ \t]+(.*))?$/
+    AttributeEntryRx = /^:(!?#{CG_WORD}[^:]*):(?:[ \t]+(.*))?$/
 
     # Matches invalid characters in an attribute name.
-    InvalidAttributeNameCharsRx = /[^\w\-]/
+    InvalidAttributeNameCharsRx = /[^#{CC_WORD}\-]/
 
     # Matches a pass inline macro that surrounds the value of an attribute
     # entry once it has been parsed.
@@ -544,7 +544,7 @@ module Asciidoctor
     #   {set:foo:bar}
     #   {set:name!}
     #
-    AttributeReferenceRx = /(\\)?\{(\w+[-\w]*|(set|counter2?):.+?)(\\)?\}/
+    AttributeReferenceRx = /(\\)?\{(#{CG_WORD}+[-#{CC_WORD}]*|(set|counter2?):.+?)(\\)?\}/
 
     ## Paragraphs and delimited blocks
 
@@ -583,7 +583,7 @@ module Asciidoctor
     #
     #   .Title goes here
     #
-    BlockTitleRx = /^\.([^ \t.].*)$/
+    BlockTitleRx = /^\.(\.?[^ \t.].*)$/
 
     # Matches an admonition label at the start of a paragraph.
     #
@@ -809,7 +809,7 @@ module Asciidoctor
     #
     #--
     # NOTE we've relaxed the match for target to accomodate the short format (e.g., name::[attrlist])
-    CustomBlockMacroRx = /^(#{CG_WORD}+)::(|\S|\S.*?\S)\[(.*)\]$/
+    CustomBlockMacroRx = /^(#{CG_WORD}+)::(|\S|\S.*?\S)\[(.+)?\]$/
 
     # Matches an image, video or audio block macro.
     #
@@ -818,7 +818,7 @@ module Asciidoctor
     #   image::filename.png[Caption]
     #   video::http://youtube.com/12345[Cats vs Dogs]
     #
-    BlockMediaMacroRx = /^(image|video|audio)::(\S|\S.*?\S)\[(.*)\]$/
+    BlockMediaMacroRx = /^(image|video|audio)::(\S|\S.*?\S)\[(.+)?\]$/
 
     # Matches the TOC block macro.
     #
@@ -827,7 +827,7 @@ module Asciidoctor
     #   toc::[]
     #   toc::[levels=2]
     #
-    BlockTocMacroRx = /^toc::\[(.*)\]$/
+    BlockTocMacroRx = /^toc::\[(.+)?\]$/
 
     ## Inline macros
 
@@ -1257,8 +1257,9 @@ module Asciidoctor
   # Public: Parse the AsciiDoc source input into a {Document}
   #
   # Accepts input as an IO (or StringIO), String or String Array object. If the
-  # input is a File, information about the file is stored in attributes on the
-  # Document object.
+  # input is a File, the object is expected to be opened for reading and is not
+  # closed afterwards by this method. Information about the file (filename,
+  # directory name, etc) gets assigned to attributes on the Document object.
   #
   # input   - the AsciiDoc source as a IO, String or Array.
   # options - a String, Array or Hash of options to control processing (default: {})
@@ -1363,10 +1364,6 @@ module Asciidoctor
 
   # Public: Parse the contents of the AsciiDoc source file into an Asciidoctor::Document
   #
-  # Accepts input as an IO, String or String Array object. If the
-  # input is a File, information about the file is stored in
-  # attributes on the Document.
-  #
   # input   - the String AsciiDoc source filename
   # options - a String, Array or Hash of options to control processing (default: {})
   #           String and Array values are converted into a Hash.
@@ -1380,11 +1377,12 @@ module Asciidoctor
   # Public: Parse the AsciiDoc source input into an Asciidoctor::Document and
   # convert it to the specified backend format.
   #
-  # Accepts input as an IO, String or String Array object. If the
-  # input is a File, information about the file is stored in
-  # attributes on the Document.
+  # Accepts input as an IO (or StringIO), String or String Array object. If the
+  # input is a File, the object is expected to be opened for reading and is not
+  # closed afterwards by this method. Information about the file (filename,
+  # directory name, etc) gets assigned to attributes on the Document object.
   #
-  # If the :in_place option is true, and the input is a File, the output is
+  # If the :to_file option is true, and the input is a File, the output is
   # written to a file adjacent to the input file, having an extension that
   # corresponds to the backend format. Otherwise, if the :to_file option is
   # specified, the file is written to that file. If :to_file is not an absolute
@@ -1429,7 +1427,7 @@ module Asciidoctor
       return self.load input, options
     else
       write_to_same_dir = false
-      write_to_target = (stream_output = to_file.respond_to? :write) ? false : to_file
+      write_to_target = (stream_output = to_file.respond_to? :write) ? false : (options[:to_file] = to_file)
     end
 
     unless options.key? :header_footer
@@ -1443,17 +1441,17 @@ module Asciidoctor
     elsif write_to_target
       if to_dir
         if to_file
-          options[:to_dir] = ::File.expand_path ::File.join to_dir, to_file, '..'
+          options[:to_dir] = ::File.dirname ::File.expand_path ::File.join to_dir, to_file
         else
           options[:to_dir] = ::File.expand_path to_dir
         end
       elsif to_file
-        options[:to_dir] = ::File.expand_path to_file, '..'
+        options[:to_dir] = ::File.dirname ::File.expand_path to_file
       end
-    else
-      options[:to_dir] = nil
     end
 
+    # NOTE :to_dir always set when outputting to a file
+    # NOTE :to_file option only passed if assigned an explicit path
     doc = self.load input, options
 
     if write_to_same_dir # write to file in same directory

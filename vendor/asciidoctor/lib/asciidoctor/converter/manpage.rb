@@ -105,22 +105,33 @@ module Asciidoctor
       # define URL macro for portability
       # see http://web.archive.org/web/20060102165607/http://people.debian.org/~branden/talks/wtfm/wtfm.pdf
       #
-      # Use: .URL "http://www.debian.org" "Debian" "."
+      # Usage
+      #
+      # .URL "http://www.debian.org" "Debian" "."
       #
       # * First argument: the URL
       # * Second argument: text to be hyperlinked
-      # * Third (optional) argument: text that needs to immediately trail
-      #   the hyperlink without intervening whitespace
+      # * Third (optional) argument: text that needs to immediately trail the hyperlink without intervening whitespace
       result << '.de URL
-\\\\$2 \(laURL: \\\\$1 \(ra\\\\$3
+\\fI\\\\$2\\fP <\\\\$1>\\\\$3
 ..
-.if \n[.g] .mso www.tmac'
-      result << %(.LINKSTYLE #{node.attr 'man-linkstyle', 'blue R < >'})
+.als MTO URL
+.if \n[.g] \{\
+.  mso www.tmac
+.  am URL
+.    ad l
+.  .
+.  am MTO
+.    ad l
+.  .'
+      result << %(.  LINKSTYLE #{node.attr 'man-linkstyle', 'blue R < >'})
+      result << '.\}'
 
       unless node.noheader
         if node.attr? 'manpurpose'
+          mannames = node.attr 'mannames', [manname]
           result << %(.SH "#{node.attr 'manname-title'}"
-#{manify mantitle} \\- #{manify node.attr 'manpurpose'})
+#{mannames.map {|n| manify n } * ', '} \\- #{manify node.attr 'manpurpose'})
         end
       end
 
@@ -176,9 +187,7 @@ Author(s).
 
     def admonition node
       result = []
-      result << %(.if n \\{\\
-.sp
-.\\}
+      result << %(.if n .sp
 .RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
@@ -216,10 +225,12 @@ r lw(\n(.lu*75u/100u).'
       result * LF
     end
 
-    # TODO implement title for dlist
     # TODO implement horizontal (if it makes sense)
     def dlist node
       result = []
+      result << %(.sp
+.B #{manify node.title}
+.br) if node.title?
       counter = 0
       node.items.each do |terms, dd|
         counter += 1
@@ -265,15 +276,11 @@ r lw(\n(.lu*75u/100u).'
 .B #{manify node.captioned_title}
 .br) if node.title?
       result << %(.sp
-.if n \\{\\
-.RS 4
-.\\}
+.if n .RS 4
 .nf
 #{manify node.content}
 .fi
-.if n \\{\\
-.RE
-.\\})
+.if n .RE)
       result * LF
     end
 
@@ -283,15 +290,11 @@ r lw(\n(.lu*75u/100u).'
 .B #{manify node.title}
 .br) if node.title?
       result << %(.sp
-.if n \\{\\
-.RS 4
-.\\}
+.if n .RS 4
 .nf
 #{manify node.content}
 .fi
-.if n \\{\\
-.RE
-.\\})
+.if n .RE)
       result * LF
     end
 
@@ -308,8 +311,8 @@ r lw(\n(.lu*75u/100u).'
 \\h'-04' #{idx + 1}.\\h'+01'\\c
 .\\}
 .el \\{\\
-.sp -1
-.IP " #{idx + 1}." 4.2
+.  sp -1
+.  IP " #{idx + 1}." 4.2
 .\\}
 #{manify item.text})
         result << item.content if item.blocks?
@@ -538,8 +541,8 @@ allbox tab(:);'
 \\h'-04'\\(bu\\h'+03'\\c
 .\\}
 .el \\{\\
-.sp -1
-.IP \\(bu 2.3
+.  sp -1
+.  IP \\(bu 2.3
 .\\}
 #{manify item.text}]
         result << item.content if item.blocks?
@@ -681,6 +684,17 @@ allbox tab(:);'
 
     def resolve_content node
       node.content_model == :compound ? node.content : %(.sp#{LF}#{manify node.content})
+    end
+
+    def write_alternate_pages mannames, manvolnum, target
+      if mannames && mannames.size > 1
+        mannames.shift
+        manvolext = %(.#{manvolnum})
+        dir, basename = ::File.split target
+        mannames.each do |manname|
+          ::IO.write ::File.join(dir, %(#{manname}#{manvolext})), %(.so #{basename})
+        end
+      end
     end
   end
 end

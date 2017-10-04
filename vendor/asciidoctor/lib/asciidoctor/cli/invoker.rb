@@ -3,6 +3,7 @@ module Asciidoctor
   module Cli
     # Public Invocation class for starting Asciidoctor via CLI
     class Invoker
+
       attr_reader :options
       attr_reader :documents
       attr_reader :code
@@ -36,6 +37,8 @@ module Asciidoctor
         opts = {}
         infiles = []
         outfile = nil
+        abs_srcdir_posix = nil
+        non_posix_env = ::File::ALT_SEPARATOR == RS
         err = @err || $stderr
         show_timings = false
 
@@ -45,6 +48,11 @@ module Asciidoctor
             infiles = val
           when :output_file
             outfile = val
+          when :source_dir
+            if val
+              abs_srcdir_posix = ::File.expand_path val
+              abs_srcdir_posix = abs_srcdir_posix.tr RS, FS if non_posix_env && (abs_srcdir_posix.include? RS)
+            end
           when :destination_dir
             opts[:to_dir] = val if val
           when :attributes
@@ -68,24 +76,23 @@ module Asciidoctor
           end
         end
 
-        stdin = if infiles.size == 1
+        if infiles.size == 1
           if (infile0 = infiles[0]) == '-'
             outfile ||= infile0
-            true
+            stdin = true
           elsif ::File.pipe? infile0
             outfile ||= '-'
-            nil
           end
         end
 
-        tofile = if outfile == '-'
-          @out || $stdout
+        if outfile == '-'
+          tofile = @out || $stdout
         elsif outfile
           opts[:mkdirs] = true
-          outfile
+          tofile = outfile
         else
           opts[:mkdirs] = true
-          nil # automatically calculate outfile based on infile
+          # automatically calculate outfile based on infile
         end
 
         if stdin
@@ -101,6 +108,17 @@ module Asciidoctor
         else
           infiles.each do |infile|
             input_opts = opts.merge :to_file => tofile
+            if abs_srcdir_posix && (input_opts.key? :to_dir)
+              abs_indir = ::File.dirname ::File.expand_path infile
+              if non_posix_env
+                abs_indir_posix = (abs_indir.include? RS) ? (abs_indir.tr RS, FS) : abs_indir
+              else
+                abs_indir_posix = abs_indir
+              end
+              if abs_indir_posix.start_with? %(#{abs_srcdir_posix}/)
+                input_opts[:to_dir] += abs_indir.slice abs_srcdir_posix.length, abs_indir.length
+              end
+            end
             if show_timings
               @documents << (::Asciidoctor.convert_file infile, (input_opts.merge :timings => (timings = Timings.new)))
               timings.print_report err, infile

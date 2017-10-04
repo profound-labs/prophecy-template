@@ -17,6 +17,15 @@ context 'Substitutions' do
       assert_equal %{<em class="blue"><a href="http://asciidoc.org">AsciiDoc</a></em> &amp; <strong class="red">Ruby</strong>\n&#167; Making <u>documentation</u> together<br>\nsince &#169; 2012.}, result
     end
 
+    test 'apply_subs should not modify string directly' do
+      input = '<html> -- the root of all web'
+      para = block_from_string input
+      para_source = para.source
+      result = para.apply_subs para_source
+      assert_equal '&lt;html&gt;&#8201;&#8212;&#8201;the root of all web', result
+      assert_equal input, para_source
+    end
+
     test 'should not drop trailing blank lines when performing substitutions' do
       para = block_from_string %([%hardbreaks]\nthis\nis\n-> {program})
       para.lines << ''
@@ -53,6 +62,9 @@ context 'Substitutions' do
 
       para = block_from_string(%q{"`a few quoted words`"})
       assert_equal '&#8220;a few quoted words&#8221;', para.sub_quotes(para.source)
+
+      para = block_from_string(%q{"`a few quoted words`"}, :backend => 'docbook')
+      assert_equal '<quote>a few quoted words</quote>', para.sub_quotes(para.source)
     end
 
     test 'escaped single-line double-quoted string' do
@@ -107,6 +119,9 @@ context 'Substitutions' do
 
       para = block_from_string(%q{'`a few quoted words`'})
       assert_equal '&#8216;a few quoted words&#8217;', para.sub_quotes(para.source)
+
+      para = block_from_string(%q{'`a few quoted words`'}, :backend => 'docbook')
+      assert_equal '<quote>a few quoted words</quote>', para.sub_quotes(para.source)
     end
 
     test 'escaped single-line single-quoted string' do
@@ -796,7 +811,7 @@ context 'Substitutions' do
     test 'should not match an inline image macro if target contains an endline character' do
       para = block_from_string(%(Fear not. There are no image:big\ncats.png[] around here.))
       result = para.sub_macros(para.source)
-      refute result.include?('<img ')
+      refute_includes result, '<img '
       assert_includes result, %(image:big\ncats.png[])
     end
 
@@ -804,7 +819,7 @@ context 'Substitutions' do
       ['image: big cats.png[]', 'image:big cats.png []'].each do |input|
         para = block_from_string %(Fear not. There are no #{input} around here.)
         result = para.sub_macros(para.source)
-        refute result.include?('<img ')
+        refute_includes result, '<img '
         assert_includes result, input
       end
     end
@@ -812,8 +827,8 @@ context 'Substitutions' do
     test 'should not detect a block image macro found inline' do
       para = block_from_string(%(Not an inline image macro image::tiger.png[].))
       result = para.sub_macros(para.source)
-      refute result.include?('<img ')
-      assert result.include?('image::tiger.png[]')
+      refute_includes result, '<img '
+      assert_includes result, 'image::tiger.png[]'
     end
 
     # NOTE this test verifies attributes get substituted eagerly in target of image in title
@@ -825,7 +840,7 @@ context 'Substitutions' do
       sect, warnings = redirect_streams do |_, err|
         [(block_from_string input, :attributes => { 'data-uri' => '', 'iconsdir' => 'fixtures', 'docdir' => ::File.dirname(__FILE__) }, :safe => :server, :catalog_assets => true), err.string]
       end
-      assert sect.document.catalog[:images].include? 'fixtures/dot.gif'
+      assert_includes sect.document.catalog[:images], 'fixtures/dot.gif'
       refute_nil warnings
       assert_empty warnings
     end
@@ -1055,6 +1070,16 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
         assert_equal 1, para.document.catalog[:indexterms].size
         assert_equal ['Panthera tigris'], para.document.catalog[:indexterms].first
       end
+    end
+
+    test 'should only escape enclosing brackets if concealed index term is preceded by a backslash' do
+      input = %[National Institute of Science and Technology #{BACKSLASH}(((NIST)))]
+      doc = document_from_string input, :header_footer => false
+      output = doc.render
+      assert_xpath '//p[text()="National Institute of Science and Technology (NIST)"]', output, 1
+      term = doc.catalog[:indexterms].first
+      assert_equal 1, term.size
+      assert_equal 'NIST', term.first
     end
 
     test 'should not split index terms on commas inside of quoted terms' do
