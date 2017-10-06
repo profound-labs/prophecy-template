@@ -1,8 +1,8 @@
 @font-face {
-  font-family: "Cormorant";
-  font-style: italic;
+  font-family: "Source Sans Pro";
+  font-style: normal;
   font-weight: normal;
-  src: url("../fonts/Cormorant-BookItalic.ttf");
+  src: url("../fonts/sourcesanspro-light.ttf");
 }
 @font-face {
   font-family: "Fontin Sans";

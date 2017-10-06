@@ -599,7 +599,7 @@ h5 code
 /* Kindle strips (or unwraps) <header> tags, so we use an inner div to style */
 .chapter-header
   /* NOTE div must have at least 1px top padding for background to fill */
-  padding: 0.75em 1.5em 0.25em 1.5em
+  padding: 0.75em 1.5em 0.25em 2.5em
   // anticipate a subtitle
   margin-bottom: 0.5em
 
@@ -693,14 +693,12 @@ p.lead
   line-height: 1.75
 
 hr.thematicbreak
-  display: none
+  display: inline-block
+  margin: 2em auto
+  width: 80%
 
 hr.thematicbreak + p
-  margin-top: 1.5em
-
-/* TODO finish layout of first-letter */
-hr.thematicbreak + p::first-letter
-  font-size: 200%
+  margin-top: 1em
 
 p.stack > strong.head,
 p.stack-head > strong.head

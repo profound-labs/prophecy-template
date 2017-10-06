@@ -29,11 +29,15 @@ section
       font-weight: normal
 
   // title page header
-  &#stillness-flowing
+  &#titlepage
     .subtitle
       margin: 0
     > header h1
       text-align: center
+
+  &#copyright
+    figure.image div.content
+      text-align: left
 
 #titlepage-description
   text-align: center
@@ -96,3 +100,6 @@ figure.image img
     padding: 15px 0 5px 0
   &.quotebreak
     margin: 0 auto
+
+.blockquote.quote > blockquote em
+  font-style: normal
