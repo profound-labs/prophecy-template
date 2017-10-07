@@ -1280,6 +1280,10 @@ section#titlepage > header h1 {
 section#copyright figure.image div.content {
   text-align: left;
 }
+figure.image img.titlepage-pubs-logo {
+  margin-top: 3em;
+  width: 100px;
+}
 #titlepage-description {
   text-align: center;
 }
