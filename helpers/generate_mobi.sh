@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ "$1" == "" ]; then
+    echo "First argument should be a book name with no spaces for the output file names."
+    exit 2
+fi
+
 # 1. Generate a MOBI with asciidoctor-epub3
 #   1.1 use "-a ebook-extract" to unzip the KF8 EPUB
 # 2. modify it
@@ -8,7 +13,7 @@
 # (opt) 5. convert to MOBI 6 with ebook-convert (calibre)
 
 MAIN_ADOC="main.adoc"
-NAME="prophecy"
+NAME="$1"
 
 # no trailing slash
 OUT_DIR=output

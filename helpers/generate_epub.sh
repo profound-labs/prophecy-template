@@ -1,12 +1,17 @@
 #!/bin/bash
 
+if [ "$1" == "" ]; then
+    echo "First argument should be a book name with no spaces for the output file names."
+    exit 2
+fi
+
 # 1. Generate an EPUB with asciidoctor-epub3
 #   1.1 use "-a ebook-extract" to unzip the KF8 EPUB
 # 2. modify it
 # 3. zip back to EPUB
 
 MAIN_ADOC="main.adoc"
-NAME="prophecy"
+NAME="$1"
 
 # no trailing slash
 OUT_DIR=output

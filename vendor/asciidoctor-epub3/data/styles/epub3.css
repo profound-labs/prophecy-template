@@ -1287,6 +1287,20 @@ figure.image img.titlepage-pubs-logo {
 #titlepage-description {
   text-align: center;
 }
+.titlepage-publisher {
+  font-family: "Source Sans Pro";
+  font-size: 12px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1pt;
+}
+.titlepage-publisher-website {
+  font-family: "Source Sans Pro";
+  font-size: 12px;
+  text-align: center;
+  text-transform: lowercase;
+  letter-spacing: 1pt;
+}
 p.subtitle {
   font-style: italic;
   font-size: 1.2em;
@@ -1345,4 +1359,11 @@ figure.image img.quotebreak {
 }
 .blockquote.quote > blockquote em {
   font-style: normal;
+}
+.blockquote.sidebar-quote {
+  padding: 1em;
+  border-left: 2px solid #666665;
+}
+.blockquote.sidebar-quote > blockquote:first-child p {
+  margin-top: 0pt;
 }
