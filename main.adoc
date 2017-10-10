@@ -1,15 +1,20 @@
-= Book Title
-The Author
-v1.0, 2017-08-19
-:booktitle: Book Title
-:revdate: 2017-08-19
+= The Book
+:booktitle: {doctitle}
 :description: Book Subtitle
-:doctype: book
+:author: The Author
 :creator: {author}
+:version: v1.0
+:revdate: 2017-08-19
+:doctype: book
 :lang: en
+:pubs-logo: profound-pubs.jpg
+:publisher: Profound Publications
+:publisher-website: profound-labs.github.io
+:source: https://profound-labs.github.io/
 //:keywords: subject, topic
 :copyright: CC-BY-NC-ND 4.0
 :isbn: 000-0-00000-000-0
+:identifier: isbn:{isbn}
 :imagesdir: assets/photos/92dpi-ebook-sRGB
 :includes: manuscript/asciidoc
 :front-cover-image: image:desktop-cover.png[Front Cover,800,1200]

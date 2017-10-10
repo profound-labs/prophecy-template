@@ -6,3 +6,12 @@
 
 [role=titlepage-author]
 {author}
+
+image::{pubs-logo}[role=titlepage-pubs-logo]
+
+[role=titlepage-publisher]
+{publisher}
+
+[role=titlepage-publisher-website]
+{publisher-website}
+
