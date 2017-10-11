@@ -584,19 +584,23 @@ ul.bibliography > li > span.principal,
 ul.references > li > span.principal {
   text-align: left;
 }
-/* sized based on the major third modular scale (4:5, 16px, 24px) */
-h1,
-h2 {
+h1 {
   color: #333332;
   font-size: 1.5em;
   margin-top: 1em;
 /* 1.5rem */
   margin-bottom: -0.3333em;
-/* -0.5rem, 0.5rem to content */
+}
+h2 {
+  color: #333332;
+  font-size: 1.25em;
+  margin-top: 1em;
+/* 1.5rem */
+  margin-bottom: -0.3333em;
 }
 h3 {
   color: #333332;
-  font-size: 1.25em;
+  font-size: 1.1em;
   margin-top: 0.84em;
 /* 1.05rem */
   margin-bottom: -0.5em;
