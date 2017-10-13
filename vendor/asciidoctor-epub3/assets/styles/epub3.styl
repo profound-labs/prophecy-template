@@ -29,10 +29,12 @@ html
   font-size: 100%
   -webkit-text-size-adjust: 100%
 
+// padding and margin on the body is for Calibre, Kindle is expected to override it
+
 /* don't set margin on body as that's how many readers frame reading area */
 /* can't set the font-family on body in Kindle */
 body
-  padding: 20pt 0 !important
+  padding: 20pt 0
   /* add margin to ~ match Kindle's narrow setting */
   /* don't use !important on margin as it interferes with reader overrides (Calibre and Kindle) */
   margin: 0
@@ -41,8 +43,11 @@ body
   text-rendering: optimizeSpeed
   /* -webkit-font-smoothing has no noticable effect and is controversial, so leaving it off */
 
-body > section
-  margin: 0 25pt
+// This controls the margin on the Kindle too, but it adds a default margin
+// already and this becomes too wide.
+
+//body > section
+//  margin: 0 25pt
 
 /* disables night mode in Aldiko, hoo-ha! */
 html body
@@ -284,7 +289,11 @@ h5, h6
 
 /* Aldiko requires a higher precedence rule to set margin and text-indent, hence the body prefix */
 /* We'll just use the stronger rule for all paragraph-related stuff to be sure */
-body p
+
+// Only justify the body-text paragraphs. For other elements, test and
+// selectively enable justification. Elements can be too narrow and become oddly
+// spaced, such as quotes, lists, captions. quotes and lists.
+body section > p
   margin: 1em 0 0 0
   text-align: justify
   text-indent: 0
@@ -822,8 +831,8 @@ aside.sidebar > div.content > div.itemized-list > ul
   margin-left: 0.5em !important
 
 div.blockquote
-  padding: 0 1em
-  margin: 1.25em 2em
+  // either margin or padding but not both
+  padding: 1.25em 2em 0pt 2em
 
 /* display: table causes quotes to be repeated in Aldiko, so we hide this part */
 div[class~="blockquote"]
@@ -833,6 +842,13 @@ blockquote
   color: $blockquote-text
   font-style: italic
   margin-top: 0
+  & > p
+    // Kindle justifies quotes by default but the spacing is streched because of
+    // the margins
+    text-align: left
+    padding-bottom: 0.8em
+  & > p:last-child
+    padding-bottom: 0pt
 
 blockquote footer
   font-size: 0.9em

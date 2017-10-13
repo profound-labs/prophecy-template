@@ -10,8 +10,8 @@
 image::{pubs-logo}[role=titlepage-pubs-logo]
 
 [role=titlepage-publisher]
-{publisher}
+{publisher-name}
 
 [role=titlepage-publisher-website]
-{publisher-website}
+link:{publisher-link-url}[{publisher-link-name}]
 

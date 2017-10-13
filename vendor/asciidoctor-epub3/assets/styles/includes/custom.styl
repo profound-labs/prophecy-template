@@ -92,6 +92,8 @@ p.subtitle
 
 .blockquote.quote blockquote
   font-style: italic
+  em
+    font-style: normal
 
 // NOTE: line-height must be relative value. 0pt is an absolute value and triggers warnings from kindlegen:
 // Absolute value specified for CSS property in content is not supported by Kindle readers. Please use % or refer Kindle Publishing Guidelines about usage of property: 'line-height'
@@ -118,9 +120,6 @@ figure.image img
     padding: 15px 0 5px 0
   &.quotebreak
     margin: 0 auto
-
-.blockquote.quote > blockquote em
-  font-style: normal
 
 .blockquote.sidebar-quote
   padding: 1em

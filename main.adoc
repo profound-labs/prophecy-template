@@ -8,8 +8,9 @@
 :doctype: book
 :lang: en
 :pubs-logo: profound-pubs.jpg
-:publisher: Profound Publications
-:publisher-website: profound-labs.github.io
+:publisher-name: Profound Publications
+:publisher-link-name: profound-labs.github.io
+:publisher-link-url: https://profound-labs.github.io/
 :source: https://profound-labs.github.io/
 //:keywords: subject, topic
 :copyright: CC-BY-NC-ND 4.0

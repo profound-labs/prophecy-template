@@ -88,7 +88,7 @@ html {
 /* don't set margin on body as that's how many readers frame reading area */
 /* can't set the font-family on body in Kindle */
 body {
-  padding: 20pt 0 !important;
+  padding: 20pt 0;
 /* add margin to ~ match Kindle's narrow setting */
 /* don't use !important on margin as it interferes with reader overrides (Calibre and Kindle) */
   margin: 0;
@@ -96,9 +96,6 @@ body {
 /* NOTE putting optimizeLegibility on the body slows down rendering considerably */
   text-rendering: optimizeSpeed;
 /* -webkit-font-smoothing has no noticable effect and is controversial, so leaving it off */
-}
-body > section {
-  margin: 0 25pt;
 }
 /* disables night mode in Aldiko, hoo-ha! */
 html body {
@@ -345,7 +342,7 @@ h6 {
 }
 /* Aldiko requires a higher precedence rule to set margin and text-indent, hence the body prefix */
 /* We'll just use the stronger rule for all paragraph-related stuff to be sure */
-body p {
+body section > p {
   margin: 1em 0 0 0;
   text-align: justify;
   text-indent: 0;
@@ -872,8 +869,7 @@ aside.sidebar > div.content > div.itemized-list > ul {
   margin-left: 0.5em !important;
 }
 div.blockquote {
-  padding: 0 1em;
-  margin: 1.25em 2em;
+  padding: 1.25em 2em 0pt 2em;
 }
 /* display: table causes quotes to be repeated in Aldiko, so we hide this part */
 div[class~="blockquote"] {
@@ -883,6 +879,13 @@ blockquote {
   color: #191918;
   font-style: italic;
   margin-top: 0;
+}
+blockquote > p {
+  text-align: left;
+  padding-bottom: 0.8em;
+}
+blockquote > p:last-child {
+  padding-bottom: 0pt;
 }
 blockquote footer {
   font-size: 0.9em;
@@ -1338,6 +1341,9 @@ p.subtitle {
 .blockquote.quote blockquote {
   font-style: italic;
 }
+.blockquote.quote blockquote em {
+  font-style: normal;
+}
 .top-anchor {
   font-size: 0pt;
   line-height: 0;
@@ -1360,9 +1366,6 @@ figure.image img.sectionbreak {
 }
 figure.image img.quotebreak {
   margin: 0 auto;
-}
-.blockquote.quote > blockquote em {
-  font-style: normal;
 }
 .blockquote.sidebar-quote {
   padding: 1em;
