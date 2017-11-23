@@ -27,6 +27,17 @@
 
 % === Metadata ===
 
+\hypersetup{
+  pdftitle={\thetitle},
+  pdfauthor={\theauthor},
+  pdfcopyright={Copyright (C) 2017, \thePublisher},
+  pdfsubject={},% TODO subject
+  pdfkeywords={},% TODO keywords
+  pdflicenseurl={http://creativecommons.org/licenses/by-nc-nd/4.0/},
+  pdfcontacturl={},
+  pdflang={en},
+}
+
 \pdfinfo{%
   /Title (\thetitle)%
   /Author (\theauthor)
@@ -75,9 +86,6 @@
 
 \input{./manuscript/tex/copyright-details.tex}
 
-% Add an extra page to complete the last sheet.
-\ifodd\thepage
-\newpage\thispagestyle{empty}\mbox{}
-\fi
+\emptyUntilModEight
 
 \end{document}

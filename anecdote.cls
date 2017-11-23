@@ -129,6 +129,7 @@
 \RequirePackage{enumitem}
 \RequirePackage{longtable}
 \RequirePackage{environ}
+\RequirePackage{pageslts}
 
 \RequirePackage{tikz}
 \usetikzlibrary{positioning}
@@ -246,30 +247,8 @@
 \RequirePackage{hyperxmp}
 \RequirePackage{hyperref}
 
-\ifdesktopversion
 \hypersetup{
   unicode=true,
-  % Colors: in the desktop version, use colored link text 
-  colorlinks=true,
-  % FIXME: the links don't work, so don't color them blue
-  %linkcolor=link,
-  %citecolor=link,
-  %filecolor=link,
-  %urlcolor=link,
-  linkcolor=textbody,
-  citecolor=textbody,
-  filecolor=textbody,
-  urlcolor=textbody,
-  % Metadata
-  pdftitle={Stillness Flowing},
-  pdfauthor={Ajahn Jayasaro},
-  pdfcopyright={Copyright (C) 2017, Panyaprateep Foundation},
-  pdfsubject={The Life and Teachings of Ajahn Chah},
-  pdfkeywords={buddhism, dhamma, biography, ajahn chah, luang por chah},
-  pdflicenseurl={http://creativecommons.org/licenses/by-nc-nd/4.0/},
-  pdfcontacturl={http://jayasaro.panyaprateep.org},
-  pdflang={en},
-  % Behaviour
   bookmarksopen=true,
   bookmarksopenlevel=3,
   hypertexnames=false,
@@ -277,31 +256,24 @@
   plainpages=false,
   breaklinks
 }
-\else
+
+\ifdesktopversion
+% Colors: in the desktop version, use colored link text
 \hypersetup{
-  unicode=true,
-  % Colors: in the print version, set link colors to text color, so that it doesn't interfere with printing
+  colorlinks=true,
+  linkcolor=link,
+  citecolor=link,
+  filecolor=link,
+  urlcolor=link,
+}
+\else
+% Colors: in the print version, set link colors to text color, so that it doesn't interfere with printing
+\hypersetup{
   colorlinks=true,
   linkcolor=textbody,
   citecolor=textbody,
   filecolor=textbody,
   urlcolor=textbody,
-  % Metadata
-  pdftitle={Stillness Flowing},
-  pdfauthor={Ajahn Jayasaro},
-  pdfcopyright={Copyright (C) 2017, Panyaprateep Foundation},
-  pdfsubject={The Life and Teachings of Ajahn Chah},
-  pdfkeywords={buddhism, dhamma, biography, ajahn chah, luang por chah},
-  pdflicenseurl={http://creativecommons.org/licenses/by-nc-nd/4.0/},
-  pdfcontacturl={http://jayasaro.panyaprateep.org},
-  pdflang={en},
-  % Behaviour
-  bookmarksopen=true,
-  bookmarksopenlevel=3,
-  hypertexnames=false,
-  linktocpage=true,
-  plainpages=false,
-  breaklinks
 }
 \fi
 
@@ -315,7 +287,15 @@
 % memoir's more allowing penalties
 \midsloppy
 
-\renewcommand\britishhyphenmins{{3}{3}}
+\ifthenelse{\equal{\BOOK@babelLanguage}{british}}{
+  \renewcommand\britishhyphenmins{{3}{3}}
+}{}
+\ifthenelse{\equal{\BOOK@babelLanguage}{italian}}{
+  \renewcommand\italianhyphenmins{{3}{3}}
+}{}
+\ifthenelse{\equal{\BOOK@babelLanguage}{portuguese}}{
+  \renewcommand\portuguesehyphenmins{{3}{3}}
+}{}
 
 \hyphenpenalty=700
 \exhyphenpenalty=50
@@ -385,6 +365,22 @@ philo-sophical munindo amaravati thai-land}
 \newcommand\emptypage{%
   \clearpage
   \thispagestyle{empty}\mbox{}\newpage
+}
+
+\newcounter{pageRem}
+\newcounter{origPage}
+
+% Add empty pages for a total page count divisible by 8 without remainder.
+\newcommand{\emptyUntilModEight}{%
+  \setcounter{origPage}{\theCurrentPage}%
+  \setcounter{pageRem}{1 + 8 - ( \theCurrentPage - ( ( \theCurrentPage / 8 ) * 8) )}%
+  \typeout{hey: \theCurrentPage, \theorigPage, \thepageRem}%
+  \loop%
+    \addtocounter{pageRem}{-1}%
+  \ifnum\thepageRem>0%
+    \clearpage%
+    hey \theorigPage \space \thepageRem%
+  \repeat%
 }
 
 \newcommand*{\subtitle}[1]{\def\@thesubtitle{#1}}
