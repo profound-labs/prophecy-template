@@ -1061,8 +1061,8 @@ philo-sophical munindo amaravati thai-land}
   \itshape #1%
 }
 
-\newcommand*{\theChapterNote}{}
-\newcommand*{\chapterNote}[1]{%
+\newcommand{\theChapterNote}{}
+\newcommand{\chapterNote}[1]{%
   \chapternotetrue%
   \renewcommand*\theChapterNote{#1}%
 }
@@ -1255,7 +1255,7 @@ philo-sophical munindo amaravati thai-land}
 
 \makechapterstyle{shedir}{
   \chapterstyle{default}
-  \setlength{\beforechapskip}{30mm}
+  \setlength{\beforechapskip}{20mm}
   \setlength{\chapterTitleLeftSkip}{0pt}
   \renewcommand\printchaptername{}
   \renewcommand\chapternamenum{}
@@ -1552,8 +1552,6 @@ philo-sophical munindo amaravati thai-land}
 
 \def\BOOK@fontSizePt{}
 \def\BOOK@lineHeightPt{}
-
-% Based on 'largepage', with font sizes from 'largevolume' (i.e. Collected Teachings)
 
 % === normalsize ===
 
