@@ -374,12 +374,13 @@ philo-sophical munindo amaravati thai-land}
 \newcommand{\emptyUntilModEight}{%
   \setcounter{origPage}{\theCurrentPage}%
   \setcounter{pageRem}{1 + 8 - ( \theCurrentPage - ( ( \theCurrentPage / 8 ) * 8) )}%
-  \typeout{hey: \theCurrentPage, \theorigPage, \thepageRem}%
+  %\typeout{hey: \theCurrentPage, \theorigPage, \thepageRem}% NOTE only for debugging
   \loop%
     \addtocounter{pageRem}{-1}%
   \ifnum\thepageRem>0%
     \clearpage%
-    hey \theorigPage \space \thepageRem%
+    \thispagestyle{empty}\mbox{}%
+    %hey \theorigPage \space \thepageRem% NOTE only for debugging
   \repeat%
 }
 
