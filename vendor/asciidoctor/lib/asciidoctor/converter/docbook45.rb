@@ -18,8 +18,8 @@ module Asciidoctor
 
     def olist node
       result = []
-      num_attribute = node.style ? %( numeration="#{node.style}") : nil
-      start_attribute = (node.attr? 'start') ? %( override="#{node.attr 'start'}") : nil
+      num_attribute = node.style ? %( numeration="#{node.style}") : ''
+      start_attribute = (node.attr? 'start') ? %( override="#{node.attr 'start'}") : ''
       result << %(<orderedlist#{common_attributes node.id, node.role, node.reftext}#{num_attribute}>)
       result << %(<title>#{node.title}</title>) if node.title?
       node.items.each_with_index do |item, idx|
@@ -29,7 +29,7 @@ module Asciidoctor
         result << '</listitem>'
       end
       result << %(</orderedlist>)
-      result * LF
+      result.join LF
     end
 
     def inline_anchor node
@@ -52,11 +52,18 @@ module Asciidoctor
       end
     end
 
-    def author_element doc, index = nil
-      firstname_key = index ? %(firstname_#{index}) : 'firstname'
-      middlename_key = index ? %(middlename_#{index}) : 'middlename'
-      lastname_key = index ? %(lastname_#{index}) : 'lastname'
-      email_key = index ? %(email_#{index}) : 'email'
+    def author_tag doc, index = nil
+      if index
+        firstname_key = %(firstname_#{index})
+        middlename_key = %(middlename_#{index})
+        lastname_key = %(lastname_#{index})
+        email_key = %(email_#{index})
+      else
+        firstname_key = 'firstname'
+        middlename_key = 'middlename'
+        lastname_key = 'lastname'
+        email_key = 'email'
+      end
 
       result = []
       result << '<author>'
@@ -65,8 +72,7 @@ module Asciidoctor
       result << %(<surname>#{doc.attr lastname_key}</surname>) if doc.attr? lastname_key
       result << %(<email>#{doc.attr email_key}</email>) if doc.attr? email_key
       result << '</author>'
-
-      result * LF
+      result.join LF
     end
 
     def common_attributes id, role = nil, reftext = nil
@@ -80,7 +86,7 @@ module Asciidoctor
       %(<!DOCTYPE #{root_tag_name} PUBLIC "-//OASIS//DTD DocBook XML V4.5//EN" "http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">)
     end
 
-    def document_info_element doc, info_tag_prefix
+    def document_info_tag doc, info_tag_prefix
       super doc, info_tag_prefix, true
     end
 
@@ -92,7 +98,7 @@ module Asciidoctor
       if (ns = doc.attr 'xmlns')
         ns.empty? ? ' xmlns="http://docbook.org/ns/docbook"' : %( xmlns="#{ns}")
       else
-        nil
+        ''
       end
     end
   end

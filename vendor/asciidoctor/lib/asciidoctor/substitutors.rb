@@ -43,14 +43,24 @@ module Substitutors
 
   SUB_HIGHLIGHT = ['coderay', 'pygments']
 
-  # Delimiters and matchers for the passthrough placeholder
-  # See http://www.aivosto.com/vbtips/control-characters.html#listabout for characters to use
+  if ::RUBY_MIN_VERSION_1_9
+    CAN = %(\u0018)
+    DEL = %(\u007f)
 
-  # SPA, start of guarded protected area (\u0096)
-  PASS_START = %(\u0096)
+    # Delimiters and matchers for the passthrough placeholder
+    # See http://www.aivosto.com/vbtips/control-characters.html#listabout for characters to use
 
-  # EPA, end of guarded protected area (\u0097)
-  PASS_END = %(\u0097)
+    # SPA, start of guarded protected area (\u0096)
+    PASS_START = %(\u0096)
+
+    # EPA, end of guarded protected area (\u0097)
+    PASS_END = %(\u0097)
+  else
+    CAN = 24.chr
+    DEL = 127.chr
+    PASS_START = 150.chr
+    PASS_END = 151.chr
+  end
 
   # match passthrough slot
   PassSlotRx = /#{PASS_START}(\d+)#{PASS_END}/
@@ -74,38 +84,19 @@ module Substitutors
   # Internal: A String Array of passthough (unprocessed) text captured from this block
   attr_reader :passthroughs
 
-  # Public: Apply the specified substitutions to the source.
+  # Public: Apply the specified substitutions to the text.
   #
-  # source  - The String or String Array of text to process; must not be nil.
-  # subs    - The substitutions to perform; can be a Symbol, Symbol Array or nil (default: NORMAL_SUBS).
-  # expand  - A Boolean (or nil) to control whether substitution aliases are expanded (default: nil).
+  # text  - The String or String Array of text to process; must not be nil.
+  # subs  - The substitutions to perform; must be a Symbol Array or nil (default: NORMAL_SUBS).
   #
-  # Returns a String or String Array with substitutions applied, matching the type of source argument.
-  def apply_subs source, subs = NORMAL_SUBS, expand = nil
-    if source.empty? || !subs
-      return source
-    elsif expand
-      if ::Symbol === subs
-        subs = SUB_GROUPS[subs] || [subs]
-      else
-        effective_subs = []
-        subs.each do |key|
-          if (sub_group = SUB_GROUPS[key])
-            effective_subs += sub_group unless sub_group.empty?
-          else
-            effective_subs << key
-          end
-        end
+  # Returns a String or String Array to match the type of the text argument with substitutions applied.
+  def apply_subs text, subs = NORMAL_SUBS
+    return text if text.empty? || !subs
 
-        if (subs = effective_subs).empty?
-          return source
-        end
-      end
-    elsif subs.empty?
-      return source
+    if (multiline = ::Array === text)
+      #text = text.size > 1 ? (text.join LF) : text[0]
+      text = text[1] ? (text.join LF) : text[0]
     end
-
-    text = (multiline = ::Array === source) ? source * LF : source
 
     if (has_passthroughs = subs.include? :macros)
       text = extract_passthroughs text
@@ -119,7 +110,7 @@ module Substitutors
       when :quotes
         text = sub_quotes text
       when :attributes
-        text = sub_attributes(text.split LF, -1) * LF if text.include? ATTR_REF_HEAD
+        text = sub_attributes text if text.include? ATTR_REF_HEAD
       when :replacements
         text = sub_replacements text
       when :macros
@@ -131,7 +122,7 @@ module Substitutors
       when :post_replacements
         text = sub_post_replacements text
       else
-        warn %(asciidoctor: WARNING: unknown substitution type #{type})
+        logger.warn %(unknown substitution type #{type})
       end
     end
     text = restore_passthroughs text if has_passthroughs
@@ -244,7 +235,7 @@ module Substitutors
       %(#{preceding}#{PASS_START}#{pass_key}#{PASS_END})
     } if (text.include? '++') || (text.include? '$$') || (text.include? 'ss:')
 
-    pass_inline_char1, pass_inline_char2, pass_inline_rx = PassInlineRx[compat_mode]
+    pass_inline_char1, pass_inline_char2, pass_inline_rx = InlinePassRx[compat_mode]
     text = text.gsub(pass_inline_rx) {
       # alias match for Ruby 1.8.7 compat
       m = $~
@@ -264,7 +255,8 @@ module Substitutors
 
       if attributes
         if format_mark == '`' && !old_behavior
-          next %(#{preceding}[#{attributes}]#{escape_mark}`#{extract_passthroughs content}`)
+          # extract nested single-plus passthrough; otherwise return unprocessed
+          next (extract_inner_passthrough content, %(#{preceding}[#{attributes}]#{escape_mark}), attributes)
         end
 
         if escape_mark
@@ -278,7 +270,8 @@ module Substitutors
           attributes = parse_attributes attributes
         end
       elsif format_mark == '`' && !old_behavior
-        next %(#{preceding}#{escape_mark}`#{extract_passthroughs content}`)
+        # extract nested single-plus passthrough; otherwise return unprocessed
+        next (extract_inner_passthrough content, %(#{preceding}#{escape_mark}))
       elsif escape_mark
         # honor the escape of the formatting mark
         next %(#{preceding}#{m[3][1..-1]})
@@ -311,7 +304,7 @@ module Substitutors
       end
 
       if (type = m[1].to_sym) == :stem
-        type = ((default_stem_type = @document.attributes['stem']).nil_or_empty? ? 'asciimath' : default_stem_type).to_sym
+        type = STEM_TYPE_ALIASES[@document.attributes['stem']].to_sym
       end
       content = unescape_brackets m[3]
       subs = m[2] ? (resolve_pass_subs m[2]) : ((@document.basebackend? 'html') ? BASIC_SUBS : nil)
@@ -320,6 +313,21 @@ module Substitutors
     } if (text.include? ':') && ((text.include? 'stem:') || (text.include? 'math:'))
 
     text
+  end
+
+  def extract_inner_passthrough text, pre, attributes = nil
+    if (text.end_with? '+') && (text.start_with? '+', '\+') && SinglePlusInlinePassRx =~ text
+      if $1
+        %(#{pre}`+#{$2}+`)
+      else
+        @passthroughs[pass_key = @passthroughs.size] = attributes ?
+            { :text => $2, :subs => BASIC_SUBS, :attributes => attributes, :type => :unquoted } :
+            { :text => $2, :subs => BASIC_SUBS }
+        %(#{pre}`#{PASS_START}#{pass_key}#{PASS_END}`)
+      end
+    else
+      %(#{pre}`#{text}`)
+    end
   end
 
   # Internal: Restore the passthrough text by reinserting into the placeholder positions
@@ -440,74 +448,78 @@ module Substitutors
     end
   end
 
-  # Public: Substitute attribute references
+  # Public: Substitutes attribute references in the specified text
   #
   # Attribute references are in the format +{name}+.
   #
-  # If an attribute referenced in the line is missing, the line is dropped.
+  # If an attribute referenced in the line is missing or undefined, the line may be dropped
+  # based on the attribute-missing or attribute-undefined setting, respectively.
   #
-  # text     - The String text to process
+  # text - The String text to process
+  # opts - A Hash of options to control processing: (default: {})
+  #        * :attribute_missing controls how to handle a missing attribute
   #
-  # returns The String text with the attribute references replaced with attribute values
-  #--
-  # NOTE it's necessary to perform this substitution line-by-line
-  # so that a missing key doesn't wipe out the whole block of data
-  # when attribute-undefined and/or attribute-missing is drop-line
-  def sub_attributes data, opts = {}
-    # normalizes data type to an array (string becomes single-element array)
-    data = [data] if (input_is_string = ::String === data)
-    doc_attrs, result = @document.attributes, []
-    data.each do |line|
-      reject = reject_if_empty = false
-      line = line.gsub(AttributeReferenceRx) {
-        # escaped attribute, return unescaped
-        if $1 == RS || $4 == RS
-          %({#{$2}})
-        elsif $3
-          case (args = $2.split ':', 3).shift
-          when 'set'
-            _, value = Parser.store_attribute args[0], args[1] || '', @document
-            # since this is an assignment, only drop-line applies here (skip and drop imply the same result)
-            if (doc_attrs.fetch 'attribute-undefined', Compliance.attribute_undefined) == 'drop-line'
-              reject = true
-              break ''
-            end unless value
-            reject_if_empty = true
-            ''
-          when 'counter2'
-            @document.counter(*args)
-            reject_if_empty = true
-            ''
-          else # 'counter'
-            @document.counter(*args)
+  # Returns the [String] text with the attribute references replaced with resolved values
+  def sub_attributes text, opts = {}
+    doc_attrs = @document.attributes
+    drop = drop_line = drop_empty_line = attribute_undefined = attribute_missing = nil
+    result = text.gsub AttributeReferenceRx do
+      # escaped attribute, return unescaped
+      if $1 == RS || $4 == RS
+        %({#{$2}})
+      elsif $3
+        case (args = $2.split ':', 3).shift
+        when 'set'
+          _, value = Parser.store_attribute args[0], args[1] || '', @document
+          # NOTE since this is an assignment, only drop-line applies here (skip and drop imply the same result)
+          if value || (attribute_undefined ||= doc_attrs['attribute-undefined'] || Compliance.attribute_undefined) != 'drop-line'
+            drop = drop_empty_line = DEL
+          else
+            drop = drop_line = CAN
           end
-        elsif doc_attrs.key?(key = $2.downcase)
-          doc_attrs[key]
-        elsif INTRINSIC_ATTRIBUTES.key? key
-          INTRINSIC_ATTRIBUTES[key]
-        else
-          case (attribute_missing ||= opts[:attribute_missing] || (doc_attrs.fetch 'attribute-missing', Compliance.attribute_missing))
-          when 'drop'
-            # QUESTION should we warn in this case?
-            reject_if_empty = true
-            ''
-          when 'drop-line'
-            warn %(asciidoctor: WARNING: dropping line containing reference to missing attribute: #{key})
-            reject = true
-            break ''
-          when 'warn'
-            warn %(asciidoctor: WARNING: skipping reference to missing attribute: #{key})
-            $&
-          else # 'skip'
-            $&
-          end
+        when 'counter2'
+          @document.counter(*args)
+          drop = drop_empty_line = DEL
+        else # 'counter'
+          @document.counter(*args)
         end
-      } if line.include? ATTR_REF_HEAD
-
-      result << line unless reject || (reject_if_empty && line.empty?)
+      elsif doc_attrs.key?(key = $2.downcase)
+        doc_attrs[key]
+      elsif (value = INTRINSIC_ATTRIBUTES[key])
+        value
+      else
+        case (attribute_missing ||= opts[:attribute_missing] || doc_attrs['attribute-missing'] || Compliance.attribute_missing)
+        when 'drop'
+          drop = drop_empty_line = DEL
+        when 'drop-line'
+          logger.warn %(dropping line containing reference to missing attribute: #{key})
+          drop = drop_line = CAN
+        when 'warn'
+          logger.warn %(skipping reference to missing attribute: #{key})
+          $&
+        else # 'skip'
+          $&
+        end
+      end
     end
 
-    input_is_string ? result * LF : result
+    if drop
+      # drop lines from result
+      if drop_empty_line
+        lines = (result.tr_s DEL, DEL).split LF, -1
+        if drop_line
+          (lines.reject {|line| line == DEL || line == CAN || (line.start_with? CAN) || (line.include? CAN) }.join LF).delete DEL
+        else
+          (lines.reject {|line| line == DEL }.join LF).delete DEL
+        end
+      elsif result.include? LF
+        (result.split LF, -1).reject {|line| line == CAN || (line.start_with? CAN) || (line.include? CAN) }.join LF
+      else
+        ''
+      end
+    else
+      result
+    end
   end
 
   # Public: Substitute inline macros (e.g., links, images, etc)
@@ -525,9 +537,10 @@ module Substitutors
     found_colon = source.include? ':'
     found_macroish = found[:macroish] = found_square_bracket && found_colon
     found_macroish_short = found_macroish && (source.include? ':[')
+    doc_attrs = (doc = @document).attributes
     result = source
 
-    if (doc_attrs = @document.attributes).key? 'experimental'
+    if doc_attrs.key? 'experimental'
       if found_macroish_short && ((result.include? 'kbd:') || (result.include? 'btn:'))
         result = result.gsub(InlineKbdBtnMacroRx) {
           # honor the escape
@@ -585,7 +598,7 @@ module Substitutors
       end
 
       if (result.include? '"') && (result.include? '&gt;')
-        result = result.gsub(MenuInlineRx) {
+        result = result.gsub(InlineMenuRx) {
           # alias match for Ruby 1.8.7 compat
           m = $~
           # honor the escape
@@ -604,7 +617,7 @@ module Substitutors
 
     # FIXME this location is somewhat arbitrary, probably need to be able to control ordering
     # TODO this handling needs some cleanup
-    if (extensions = @document.extensions) && extensions.inline_macros? # && found_macroish
+    if (extensions = doc.extensions) && extensions.inline_macros? # && found_macroish
       extensions.inline_macros.each do |extension|
         result = result.gsub(extension.instance.regexp) {
           # alias match for Ruby 1.8.7 compat
@@ -658,14 +671,14 @@ module Substitutors
           # TODO remove this special case once titles use normal substitution order
           target = sub_attributes target
         end
-        @document.register(:images, target) unless type == 'icon'
+        doc.register(:images, target) unless type == 'icon'
         attrs = parse_attributes(m[2], posattrs, :unescape_input => true)
         attrs['alt'] ||= (attrs['default-alt'] = Helpers.basename(target, true).tr('_-', ' '))
         Inline.new(self, :image, nil, :type => type, :target => target, :attributes => attrs).convert
       }
     end
 
-    if ((result.include? '((') && (result.include? '))')) || (found_macroish_short && (result.include? 'indexterm'))
+    if ((result.include? '((') && (result.include? '))')) || (found_macroish_short && (result.include? 'dexterm'))
       # (((Tigers,Big cats)))
       # indexterm:[Tigers,Big cats]
       # ((Tigers))
@@ -680,7 +693,7 @@ module Substitutors
           end
           # indexterm:[Tigers,Big cats]
           terms = split_simple_csv normalize_string text, true
-          @document.register :indexterms, terms
+          doc.register :indexterms, terms
           (Inline.new self, :indexterm, nil, :attributes => { 'terms' => terms }).convert
         when 'indexterm2'
           text = $2
@@ -690,7 +703,7 @@ module Substitutors
           end
           # indexterm2:[Tigers]
           term = normalize_string text, true
-          @document.register :indexterms, [term]
+          doc.register :indexterms, [term]
           (Inline.new self, :indexterm, term, :type => :visible).convert
         else
           text = $3
@@ -709,7 +722,7 @@ module Substitutors
               if text.end_with? ')'
                 text, visible = (text.slice 1, text.length - 2), false
               else
-                text, before, after = (text.slice 1, text.length - 1), '(', ''
+                text, before, after = (text.slice 1, text.length), '(', ''
               end
             elsif text.end_with? ')'
               text, before, after = (text.slice 0, text.length - 1), '', ')'
@@ -718,12 +731,12 @@ module Substitutors
           if visible
             # ((Tigers))
             term = normalize_string text
-            @document.register :indexterms, [term]
+            doc.register :indexterms, [term]
             result = (Inline.new self, :indexterm, term, :type => :visible).convert
           else
             # (((Tigers,Big cats)))
             terms = split_simple_csv(normalize_string text)
-            @document.register :indexterms, terms
+            doc.register :indexterms, terms
             result = (Inline.new self, :indexterm, nil, :attributes => { 'terms' => terms }).convert
           end
           before ? %(#{before}#{result}#{after}) : result
@@ -733,7 +746,7 @@ module Substitutors
 
     if found_colon && (result.include? '://')
       # inline urls, target[text] (optionally prefixed with link: and optionally surrounded by <>)
-      result = result.gsub(LinkInlineRx) {
+      result = result.gsub(InlineLinkRx) {
         # alias match for Ruby 1.8.7 compat
         m = $~
         # honor the escape
@@ -762,15 +775,13 @@ module Substitutors
             if prefix.start_with?('&lt;') && target.end_with?('&gt;')
               prefix = prefix[4..-1]
               target = target[0...-4]
+            # strip trailing ;
+            # check for trailing );
+            elsif (target = target.chop).end_with?(')')
+              target = target.chop
+              suffix = ');'
             else
-              # strip trailing ;
-              # check for trailing );
-              if (target = target.chop).end_with?(')')
-                target = target.chop
-                suffix = ');'
-              else
-                suffix = ';'
-              end
+              suffix = ';'
             end
           when ':'
             # strip trailing :
@@ -782,15 +793,16 @@ module Substitutors
               suffix = ':'
             end
           end
+          # NOTE handle case when remaining target is a URI scheme (e.g., http://)
+          return m[0] if target.end_with? '://'
         end
 
         attrs, link_opts = nil, { :type => :link }
         unless text.empty?
           text = text.gsub ESC_R_SB, R_SB if text.include? R_SB
-          if (doc_attrs.key? 'linkattrs') && ((text.start_with? '"') || ((text.include? ',') && (text.include? '=')))
-            attrs = parse_attributes text, []
+          if !doc.compat_mode && (text.include? '=')
+            text = (attrs = (AttributeList.new text, self).parse)[1] || ''
             link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
-            text = attrs[1] || ''
           end
 
           # TODO enable in Asciidoctor 1.6.x
@@ -821,7 +833,7 @@ module Substitutors
           end
         end
 
-        @document.register :links, (link_opts[:target] = target)
+        doc.register :links, (link_opts[:target] = target)
         link_opts[:attributes] = attrs if attrs
         %(#{prefix}#{Inline.new(self, :anchor, text, link_opts).convert}#{suffix})
       }
@@ -840,10 +852,10 @@ module Substitutors
         attrs, link_opts = nil, { :type => :link }
         unless (text = m[3]).empty?
           text = text.gsub ESC_R_SB, R_SB if text.include? R_SB
-          if (doc_attrs.key? 'linkattrs') && ((text.start_with? '"') || ((text.include? ',') && (mailto || (text.include? '='))))
-            attrs = parse_attributes text, []
-            link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
-            if mailto
+          if mailto
+            if !doc.compat_mode && (text.include? ',')
+              text = (attrs = (AttributeList.new text, self).parse)[1] || ''
+              link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
               if attrs.key? 2
                 if attrs.key? 3
                   target = %(#{target}?subject=#{Helpers.uri_encode attrs[2]}&amp;body=#{Helpers.uri_encode attrs[3]})
@@ -852,7 +864,9 @@ module Substitutors
                 end
               end
             end
-            text = attrs[1] || ''
+          elsif !doc.compat_mode && (text.include? '=')
+            text = (attrs = (AttributeList.new text, self).parse)[1] || ''
+            link_opts[:id] = attrs.delete 'id' if attrs.key? 'id'
           end
 
           # TODO enable in Asciidoctor 1.6.x
@@ -889,14 +903,14 @@ module Substitutors
         end
 
         # QUESTION should a mailto be registered as an e-mail address?
-        @document.register :links, (link_opts[:target] = target)
+        doc.register :links, (link_opts[:target] = target)
         link_opts[:attributes] = attrs if attrs
         Inline.new(self, :anchor, text, link_opts).convert
       }
     end
 
     if result.include? '@'
-      result = result.gsub(EmailInlineRx) {
+      result = result.gsub(InlineEmailRx) {
         address, tip = $&, $1
         if tip
           next (tip == RS ? address[1..-1] : address)
@@ -904,13 +918,13 @@ module Substitutors
 
         target = %(mailto:#{address})
         # QUESTION should this be registered as an e-mail address?
-        @document.register(:links, target)
+        doc.register(:links, target)
 
         Inline.new(self, :anchor, address, :type => :link, :target => target).convert
       }
     end
 
-    if found_macroish_short && (result.include? 'footnote')
+    if found_macroish && (result.include? 'tnote')
       result = result.gsub(InlineFootnoteMacroRx) {
         # alias match for Ruby 1.8.7 compat
         m = $~
@@ -918,36 +932,35 @@ module Substitutors
         if m[0].start_with? RS
           next m[0][1..-1]
         end
-        if m[1] == 'footnote'
-          id = nil
-          # REVIEW it's a dirty job, but somebody's gotta do it
-          text = restore_passthroughs(sub_inline_xrefs(sub_inline_anchors(normalize_string m[2], true)), false)
-          index = @document.counter('footnote-number')
-          @document.register(:footnotes, Document::Footnote.new(index, id, text))
-          type = nil
-          target = nil
+        if m[1] # footnoteref (legacy)
+          id, text = (m[3] || '').split(',', 2)
         else
-          id, text = m[2].split(',', 2)
-          id = id.strip
+          id, text = m[2], m[3]
+        end
+        if id
           if text
             # REVIEW it's a dirty job, but somebody's gotta do it
             text = restore_passthroughs(sub_inline_xrefs(sub_inline_anchors(normalize_string text, true)), false)
-            index = @document.counter('footnote-number')
-            @document.register(:footnotes, Document::Footnote.new(index, id, text))
-            type = :ref
-            target = nil
+            index = doc.counter('footnote-number')
+            doc.register(:footnotes, Document::Footnote.new(index, id, text))
+            type, target = :ref, nil
           else
-            if (footnote = @document.footnotes.find {|fn| fn.id == id })
-              index = footnote.index
-              text = footnote.text
+            if (footnote = doc.footnotes.find {|candidate| candidate.id == id })
+              index, text = footnote.index, footnote.text
             else
-              index = nil
-              text = id
+              logger.warn %(invalid footnote reference: #{id})
+              index, text = nil, id
             end
-            target = id
-            id = nil
-            type = :xref
+            type, target, id = :xref, id, nil
           end
+        elsif text
+          # REVIEW it's a dirty job, but somebody's gotta do it
+          text = restore_passthroughs(sub_inline_xrefs(sub_inline_anchors(normalize_string text, true)), false)
+          index = doc.counter('footnote-number')
+          doc.register(:footnotes, Document::Footnote.new(index, id, text))
+          type = target = nil
+        else
+          next m[0]
         end
         Inline.new(self, :footnote, text, :attributes => {'index' => index}, :id => id, :target => target, :type => type).convert
       }
@@ -988,76 +1001,95 @@ module Substitutors
   end
 
   # Internal: Substitute cross reference links
-  def sub_inline_xrefs(text, found = nil)
-    if ((found ? found[:macroish] : (text.include? '[')) && (text.include? 'xref:')) ||
-        ((text.include? '&') && (text.include? '&lt;&lt;'))
-      text = text.gsub(InlineXrefMacroRx) {
+  def sub_inline_xrefs(content, found = nil)
+    if ((found ? found[:macroish] : (content.include? '[')) && (content.include? 'xref:')) || ((content.include? '&') && (content.include? 'lt;&'))
+      content = content.gsub(InlineXrefMacroRx) {
         # alias match for Ruby 1.8.7 compat
         m = $~
         # honor the escape
         if m[0].start_with? RS
           next m[0][1..-1]
         end
-        if (id = m[1])
-          id, reftext = id.split ',', 2
-          reftext = reftext.lstrip if reftext
+        attrs, doc = {}, @document
+        if (refid = m[1])
+          refid, text = refid.split ',', 2
+          text = text.lstrip if text
         else
-          id = m[2]
-          if (reftext = m[3]) && (reftext.include? R_SB)
-            reftext = reftext.gsub ESC_R_SB, R_SB
+          macro = true
+          refid = m[2]
+          if (text = m[3])
+            text = text.gsub ESC_R_SB, R_SB if text.include? R_SB
+            # NOTE if an equal sign (=) is present, parse text as attributes
+            text = ((AttributeList.new text, self).parse_into attrs)[1] if !doc.compat_mode && (text.include? '=')
           end
         end
 
-        if (hash_idx = id.index '#')
+        if doc.compat_mode
+          fragment = refid
+        elsif (hash_idx = refid.index '#')
           if hash_idx > 0
-            if (fragment_len = id.length - hash_idx - 1) > 0
-              path, fragment = (id.slice 0, hash_idx), (id.slice hash_idx + 1, fragment_len)
+            if (fragment_len = refid.length - hash_idx - 1) > 0
+              path, fragment = (refid.slice 0, hash_idx), (refid.slice hash_idx + 1, fragment_len)
             else
-              path = id.slice 0, hash_idx
+              path = refid.slice 0, hash_idx
             end
-            if (ext_idx = path.rindex '.') && ASCIIDOC_EXTENSIONS[path.slice ext_idx, path.length]
-              path = path.slice 0, ext_idx
+            if (ext = ::File.extname path).empty?
+              src2src = path
+            elsif ASCIIDOC_EXTENSIONS[ext]
+              src2src = (path = path.slice 0, path.length - ext.length)
             end
           else
-            target, fragment = id, (id.slice 1, id.length)
+            target, fragment = refid, (refid.slice 1, refid.length)
           end
-        elsif (ext_idx = id.rindex '.') && ASCIIDOC_EXTENSIONS[id.slice ext_idx, id.length]
-          path = id.slice 0, ext_idx
+        elsif macro && (refid.end_with? '.adoc')
+          src2src = (path = refid.slice 0, refid.length - 5)
         else
-          fragment = id
+          fragment = refid
         end
 
         # handles: #id
         if target
           refid = fragment
-        # handles: path#, path.adoc#, path#id, path.adoc#id, or path (from path.adoc)
+          logger.warn %(invalid reference: #{refid}) if $VERBOSE && !(doc.catalog[:ids].key? refid)
         elsif path
-          # the referenced path is this document, or its contents has been included in this document
-          if @document.attributes['docname'] == path || @document.catalog[:includes].include?(path)
-            refid, path, target = fragment, nil, %(##{fragment})
+          # handles: path#, path#id, path.adoc#, path.adoc#id, or path.adoc (xref macro only)
+          # the referenced path is the current document, or its contents have been included in the current document
+          if src2src && (doc.attributes['docname'] == path || doc.catalog[:includes][path])
+            if fragment
+              refid, path, target = fragment, nil, %(##{fragment})
+              logger.warn %(invalid reference: #{refid}) if $VERBOSE && !(doc.catalog[:ids].key? refid)
+            else
+              refid, path, target = nil, nil, '#'
+            end
           else
-            refid = fragment ? %(#{path}##{fragment}) : path
-            path = %(#{@document.attributes['relfileprefix']}#{path}#{@document.attributes.fetch 'outfilesuffix', '.html'})
-            target = fragment ? %(#{path}##{fragment}) : path
-          end
-        # handles: id or Section Title
-        else
-          # resolve fragment as reftext if it's not a known ID and resembles reftext (includes space or has uppercase char)
-          unless @document.catalog[:ids].key? fragment
-            if ((fragment.include? ' ') || fragment.downcase != fragment) &&
-                (resolved_id = @document.catalog[:ids].key fragment)
-              fragment = resolved_id
-            elsif $VERBOSE
-              warn %(asciidoctor: WARNING: invalid reference: #{fragment})
+            refid, path = path, %(#{doc.attributes['relfileprefix']}#{path}#{src2src ? (doc.attributes.fetch 'relfilesuffix', doc.outfilesuffix) : ''})
+            if fragment
+              refid, target = %(#{refid}##{fragment}), %(#{path}##{fragment})
+            else
+              target = path
             end
           end
+        # handles: id (in compat mode or when natural xrefs are disabled)
+        elsif doc.compat_mode || !Compliance.natural_xrefs
           refid, target = fragment, %(##{fragment})
+          logger.warn %(invalid reference: #{refid}) if $VERBOSE && !(doc.catalog[:ids].key? refid)
+        # handles: id
+        elsif doc.catalog[:ids].key? fragment
+          refid, target = fragment, %(##{fragment})
+        # handles: Node Title or Reference Text
+        # do reverse lookup on fragment if not a known ID and resembles reftext (contains a space or uppercase char)
+        elsif (refid = doc.catalog[:ids].key fragment) && ((fragment.include? ' ') || fragment.downcase != fragment)
+          fragment, target = refid, %(##{refid})
+        else
+          refid, target = fragment, %(##{fragment})
+          logger.warn %(invalid reference: #{refid}) if $VERBOSE
         end
-        Inline.new(self, :anchor, reftext, :type => :xref, :target => target, :attributes => {'path' => path, 'fragment' => fragment, 'refid' => refid}).convert
+        attrs['path'], attrs['fragment'], attrs['refid'] = path, fragment, refid
+        Inline.new(self, :anchor, text, :type => :xref, :target => target, :attributes => attrs).convert
       }
     end
 
-    text
+    content
   end
 
   # Public: Substitute callout source references
@@ -1089,7 +1121,7 @@ module Substitutors
       last = lines.pop
       (lines.map {|line|
         Inline.new(self, :break, (line.end_with? HARD_LINE_BREAK) ? (line.slice 0, line.length - 2) : line, :type => :line).convert
-      } << last) * LF
+      } << last).join LF
     elsif (text.include? PLUS) && (text.include? HARD_LINE_BREAK)
       text.gsub(HardLineBreakRx) { Inline.new(self, :break, $1, :type => :line).convert }
     else
@@ -1140,7 +1172,7 @@ module Substitutors
   # Returns a Hash of attributes (role and id only)
   def parse_quoted_text_attributes str
     # NOTE attributes are typically resolved after quoted text, so substitute eagerly
-    str = sub_attributes str if str.include? ATTR_REF_HEAD
+    str = sub_attributes str, :multiline => true if str.include? ATTR_REF_HEAD
     # for compliance, only consider first positional attribute
     str = str.slice 0, (str.index ',') if str.include? ','
 
@@ -1167,7 +1199,7 @@ module Substitutors
 
       attrs = {}
       attrs['id'] = id if id
-      attrs['role'] = roles * ' ' unless roles.empty?
+      attrs['role'] = roles.join ' ' unless roles.empty?
       attrs
     else
       {'role' => str}
@@ -1183,8 +1215,8 @@ module Substitutors
   def parse_attributes(attrline, posattrs = ['role'], opts = {})
     return unless attrline
     return {} if attrline.empty?
-    attrline = @document.sub_attributes(attrline) if opts[:sub_input] && (attrline.include? ATTR_REF_HEAD)
-    attrline = unescape_bracketed_text(attrline) if opts[:unescape_input]
+    attrline = @document.sub_attributes attrline if opts[:sub_input] && (attrline.include? ATTR_REF_HEAD)
+    attrline = unescape_bracketed_text attrline if opts[:unescape_input]
     # substitutions are only performed on attribute values if block is not nil
     block = opts.fetch(:sub_result, true) ? self : nil
     if (into = opts[:into])
@@ -1194,7 +1226,33 @@ module Substitutors
     end
   end
 
-  # Internal: Strip bounding whitespace, fold endlines and unescaped closing
+  # Expand all groups in the subs list and return. If no subs are resolve, return nil.
+  #
+  # subs - The substitutions to expand; can be a Symbol, Symbol Array or nil
+  #
+  # Returns a Symbol Array of substitutions to pass to apply_subs or nil if no substitutions were resolved.
+  def expand_subs subs
+    if ::Symbol === subs
+      unless subs == :none
+        SUB_GROUPS[subs] || [subs]
+      end
+    else
+      expanded_subs = []
+      subs.each do |key|
+        unless key == :none
+          if (sub_group = SUB_GROUPS[key])
+            expanded_subs += sub_group
+          else
+            expanded_subs << key
+          end
+        end
+      end
+
+      expanded_subs.empty? ? nil : expanded_subs
+    end
+  end
+
+  # Internal: Strip bounding whitespace, fold endlines and unescape closing
   # square brackets from text extracted from brackets
   def unescape_bracketed_text text
     if (text = text.strip.tr LF, ' ').include? R_SB
@@ -1316,7 +1374,7 @@ module Substitutors
     resolved = candidates & SUB_OPTIONS[type]
     unless (candidates - resolved).empty?
       invalid = candidates - resolved
-      warn %(asciidoctor: WARNING: invalid substitution type#{invalid.size > 1 ? 's' : ''}#{subject ? ' for ' : nil}#{subject}: #{invalid * ', '})
+      logger.warn %(invalid substitution type#{invalid.size > 1 ? 's' : ''}#{subject ? ' for ' : ''}#{subject}: #{invalid.join ', '})
     end
     resolved
   end
@@ -1393,7 +1451,7 @@ module Substitutors
             nil
           end
         }
-      } * LF
+      }.join LF
       callout_on_last = (last == lineno)
       callout_marks = nil if callout_marks.empty?
     else
@@ -1426,25 +1484,29 @@ module Substitutors
       end
       if attr? 'highlight', nil, false
         unless (highlight_lines = resolve_highlight_lines(attr 'highlight', nil, false)).empty?
-          opts[:hl_lines] = highlight_lines * ' '
+          opts[:hl_lines] = highlight_lines.join ' '
         end
       end
       # NOTE highlight can return nil if something goes wrong; fallback to source if this happens
       # TODO we could add the line numbers in ourselves instead of having to strip out the junk
       if (attr? 'linenums', nil, false) && (opts[:linenos] = @document.attributes['pygments-linenums-mode'] || 'table') == 'table'
         linenums_mode = :table
-        result = ((lexer.highlight source, :options => opts) || source).sub(PygmentsWrapperDivRx, '\1').gsub(PygmentsWrapperPreRx, '\1')
-      else
-        if PygmentsWrapperPreRx =~ (result = (lexer.highlight source, :options => opts) || source)
+        if (result = lexer.highlight source, :options => opts)
+          result = (result.sub PygmentsWrapperDivRx, '\1').gsub PygmentsWrapperPreRx, '\1'
+        else
+          result = sub_specialchars source
+        end
+      elsif (result = lexer.highlight source, :options => opts)
+        if PygmentsWrapperPreRx =~ result
           result = $1
         end
+      else
+        result = sub_specialchars source
       end
     end
 
     # fix passthrough placeholders that got caught up in syntax highlighting
-    unless @passthroughs.empty?
-      result = result.gsub HighlightedPassSlotRx, %(#{PASS_START}\\1#{PASS_END})
-    end
+    result = result.gsub HighlightedPassSlotRx, %(#{PASS_START}\\1#{PASS_END}) unless @passthroughs.empty?
 
     if process_callouts && callout_marks
       lineno = 0
@@ -1467,13 +1529,13 @@ module Substitutors
           if conums.size == 1
             %(#{line}#{Inline.new(self, :callout, conums[0], :id => @document.callouts.read_next_id).convert}#{tail})
           else
-            conums_markup = conums.map {|conum| Inline.new(self, :callout, conum, :id => @document.callouts.read_next_id).convert } * ' '
+            conums_markup = conums.map {|conum| Inline.new(self, :callout, conum, :id => @document.callouts.read_next_id).convert }.join ' '
             %(#{line}#{conums_markup}#{tail})
           end
         else
           line
         end
-      } * LF
+      }.join LF
     else
       result
     end

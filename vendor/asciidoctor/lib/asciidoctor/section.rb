@@ -30,7 +30,8 @@ class Section < AbstractBlock
   # Public: Get/Set the flag to indicate whether this is a special section or a child of one
   attr_accessor :special
 
-  # Public: Get the state of the numbered attribute at this section (need to preserve for creating TOC)
+  # Public: Get/Set the flag to indicate whether this section should be numbered.
+  # The sectnum method should only be called if this flag is true.
   attr_accessor :numbered
 
   # Public: Get the caption for this section (only relevant for appendices)
@@ -38,14 +39,19 @@ class Section < AbstractBlock
 
   # Public: Initialize an Asciidoctor::Section object.
   #
-  # parent - The parent Asciidoc Object.
-  def initialize parent = nil, level = nil, numbered = true, opts = {}
+  # parent   - The parent AbstractBlock. If set, must be a Document or Section object (default: nil)
+  # level    - The Integer level of this section (default: 1 more than parent level or 1 if parent not defined)
+  # numbered - A Boolean indicating whether numbering is enabled for this Section (default: false)
+  # opts     - An optional Hash of options (default: {})
+  def initialize parent = nil, level = nil, numbered = false, opts = {}
     super parent, :section, opts
-    @level = level ? level : (parent ? (parent.level + 1) : 1)
-    @numbered = numbered && @level > 0
-    @special = parent && parent.context == :section && parent.special
+    if Section === parent
+      @level, @special = level || (parent.level + 1), parent.special
+    else
+      @level, @special = level || 1, false
+    end
+    @numbered = numbered
     @index = 0
-    @number = 1
   end
 
   # Public: The name of this section, an alias of the section title
@@ -60,10 +66,12 @@ class Section < AbstractBlock
 
   # Public: Get the section number for the current Section
   #
-  # The section number is a unique, dot separated String
-  # where each entry represents one level of nesting and
-  # the value of each entry is the 1-based outline number
-  # of the Section amongst its numbered sibling Sections
+  # The section number is a dot-separated String that uniquely describes the position of this
+  # Section in the document. Each entry represents a level of nesting. The value of each entry is
+  # the 1-based outline number of the Section amongst its numbered sibling Sections.
+  #
+  # This method assumes that both the @level and @parent instance variables have been assigned.
+  # The method also assumes that the value of @parent is either a Document or Section.
   #
   # delimiter - the delimiter to separate the number for each level
   # append    - the String to append at the end of the section number
@@ -103,10 +111,12 @@ class Section < AbstractBlock
   # Returns the section number as a String
   def sectnum(delimiter = '.', append = nil)
     append ||= (append == false ? '' : delimiter)
-    if @level && @level > 1 && @parent && @parent.context == :section
-      %(#{@parent.sectnum(delimiter)}#{@number}#{append})
-    else
+    if @level == 1
       %(#{@number}#{append})
+    elsif @level > 1
+      Section === @parent ? %(#{@parent.sectnum(delimiter)}#{@number}#{append}) : %(#{@number}#{append})
+    else # @level == 0
+      %(#{Helpers.int_to_roman @number}#{append})
     end
   end
 
@@ -169,36 +179,40 @@ class Section < AbstractBlock
   # Public: Generate a String ID from the given section title.
   #
   # The generated ID is prefixed with value of the 'idprefix' attribute, which
-  # is an underscore by default. Invalid characters are replaced with the
-  # value of the 'idseparator' attribute, which is an underscore by default.
+  # is an underscore (_) by default. Invalid characters are then removed and
+  # spaces are replaced with the value of the 'idseparator' attribute, which is
+  # an underscore (_) by default.
   #
-  # If the generated ID is already in use in the document, a count is appended
-  # until a unique id is found.
+  # If the generated ID is already in use in the document, a count is appended,
+  # offset by the separator, until a unique ID is found.
   #
-  # Section ID generation can be disabled by undefining the 'sectids' attribute.
+  # Section ID generation can be disabled by unsetting the 'sectids' document attribute.
   #
   # Examples
   #
   #   Section.generate_id 'Foo', document
   #   => "_foo"
   #
+  # Returns the generated [String] ID.
   def self.generate_id title, document
     attrs = document.attributes
-    if (sep = attrs['idseparator'])
-      sep, sep_len = (attrs['idseparator'] = sep.chr), 1 if (sep_len = sep.length) > 1
-    else
-      sep, sep_len = '_', 1
-    end
     pre = attrs['idprefix'] || '_'
-    gen_id = %(#{pre}#{title.downcase.gsub InvalidSectionIdCharsRx, sep})
-    if sep_len > 0
-      # remove repeat and trailing separator characters
-      gen_id = gen_id.tr_s sep, sep
-      gen_id = gen_id.chop if gen_id.end_with? sep
-      # ensure id doesn't begin with idseparator if idprefix is empty and idseparator is not empty
-      if pre.empty?
-        gen_id = gen_id.slice 1, gen_id.length while gen_id.start_with? sep
+    if (sep = attrs['idseparator'])
+      if sep.length == 1 || (!(no_sep = sep.empty?) && (sep = attrs['idseparator'] = sep.chr))
+        sep_sub = sep == '-' || sep == '.' ? ' .-' : %( #{sep}.-)
       end
+    else
+      sep, sep_sub = '_', ' _.-'
+    end
+    gen_id = %(#{pre}#{title.downcase.gsub InvalidSectionIdCharsRx, ''})
+    if no_sep
+      gen_id = gen_id.delete ' '
+    else
+      # replace space with separator and remove repeating and trailing separator characters
+      gen_id = gen_id.tr_s sep_sub, sep
+      gen_id = gen_id.chop if gen_id.end_with? sep
+      # ensure id doesn't begin with idseparator if idprefix is empty (assuming idseparator is not empty)
+      gen_id = gen_id.slice 1, gen_id.length if pre.empty? && (gen_id.start_with? sep)
     end
     if document.catalog[:ids].key? gen_id
       ids, cnt = document.catalog[:ids], Compliance.unique_id_start_index

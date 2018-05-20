@@ -355,6 +355,71 @@ NOTE: This is a note.
       assert_xpath '//ul/li/*[@class="admonitionblock note"]//td[@class="content"][normalize-space(text())="This is a note."]', output, 1
     end
 
+    test 'paragraph-like blocks attached to an ancestory list item by a list continuation should produce blocks' do
+      input = <<-EOS
+* parent
+ ** child
+
++
+NOTE: This is a note.
+
+* another parent
+ ** another child
+
++
+'''
+      EOS
+
+      output = render_embedded_string input
+      assert_css 'ul ul .admonitionblock.note', output, 0
+      assert_xpath '(//ul)[1]/li/*[@class="admonitionblock note"]', output, 1
+      assert_css 'ul ul hr', output, 0
+      assert_xpath '(//ul)[1]/li/hr', output, 1
+    end
+
+    test 'should not inherit block attributes from previous block when block is attached using a list continuation' do
+      input = <<-EOS
+* complex list item
++
+[source,xml]
+----
+<name>value</name> <!--1-->
+----
+<1> a configuration value
+      EOS
+
+      doc = document_from_string input
+      colist = doc.blocks[0].items[0].blocks[-1]
+      assert_equal :colist, colist.context
+      refute_equal 'source', colist.style
+      output = doc.convert :header_footer => false
+      assert_css 'ul', output, 1
+      assert_css 'ul > li', output, 1
+      assert_css 'ul > li > p', output, 1
+      assert_css 'ul > li > .listingblock', output, 1
+      assert_css 'ul > li > .colist', output, 1
+    end
+
+    test 'should continue to parse blocks attached by a list continuation after block is dropped' do
+      input = <<-EOS
+* item
++
+paragraph
++
+[comment]
+comment
++
+====
+example
+====
+'''
+      EOS
+
+      output = render_embedded_string input
+      assert_css 'ul > li > .paragraph', output, 1
+      assert_css 'ul > li > .exampleblock', output, 1
+    end
+
     test 'appends line as paragraph if attached by continuation following line comment' do
       input = <<-EOS
 - list item 1
@@ -699,6 +764,26 @@ B. And it ends here.
       output = render_string input
       assert_xpath '//ol', output, 1
       assert_xpath '//ol/li', output, 2
+    end
+
+    test 'should discover anchor at start of list item text and register it as a reference' do
+      input = <<-EOS
+The highest peak in the Front Range is <<grays-peak>>, which tops <<mount-evans>> by just a few feet.
+
+* [[mount-evans,Mount Evans]]At 14,271 feet, Mount Evans is the highest summit of the Chicago Peaks in the Front Range of the Rocky Mountains.
+* [[grays-peak,Grays Peak]]
+Grays Peak rises to 14,278 feet, making it the highest summit in the Front Range of the Rocky Mountains.
+* Longs Peak is a 14,259-foot high, prominent mountain summit in the northern Front Range of the Rocky Mountains.
+* Pikes Peak is the highest summit of the southern Front Range of the Rocky Mountains at 14,115 feet.
+      EOS
+
+      doc = document_from_string input
+      refs = doc.catalog[:refs]
+      assert refs.key?('mount-evans')
+      assert refs.key?('grays-peak')
+      output = doc.convert :header_footer => false
+      assert_xpath '(//p)[1]/a[@href="#grays-peak"][text()="Grays Peak"]', output, 1
+      assert_xpath '(//p)[1]/a[@href="#mount-evans"][text()="Mount Evans"]', output, 1
     end
   end
 
@@ -1540,6 +1625,23 @@ Item one, paragraph two
     end
 =end
 
+    test 'should warn if unterminated block is detected in list item' do
+      input = <<-EOS
+* item
++
+====
+example
+* swallowed item
+      EOS
+
+      using_memory_logger do |logger|
+        output = render_embedded_string input
+        assert_xpath '//ul/li', output, 1
+        assert_xpath '//ul/li/*[@class="exampleblock"]', output, 1
+        assert_xpath %(//p[text()="example\n* swallowed item"]), output, 1
+        assert_message logger, :WARN, '<stdin>: line 3: unterminated example block', Hash
+      end
+    end
   end
 end
 
@@ -1764,6 +1866,30 @@ List
       assert_xpath '(//orderedlist)[@startingnumber = "7"]', output, 1
     end
   end
+
+  test 'should warn if explicit uppercase roman numerals in list are out of sequence' do
+    input = <<-EOS
+I) one
+III) three
+    EOS
+    using_memory_logger do |logger|
+      output = render_embedded_string input
+      assert_xpath '//ol/li', output, 2
+      assert_message logger, :WARN, '<stdin>: line 2: list item index: expected II, got III', Hash
+    end
+  end
+
+  test 'should warn if explicit lowercase roman numerals in list are out of sequence' do
+    input = <<-EOS
+i) one
+iii) three
+    EOS
+    using_memory_logger do |logger|
+      output = render_embedded_string input
+      assert_xpath '//ol/li', output, 2
+      assert_message logger, :WARN, '<stdin>: line 2: list item index: expected ii, got iii', Hash
+    end
+  end
 end
 
 context "Description lists (:dlist)" do
@@ -1781,6 +1907,21 @@ term2:: def2
       assert_xpath '(//dl/dt)[1]/following-sibling::dd/p[text() = "def1"]', output, 1
       assert_xpath '(//dl/dt)[2][normalize-space(text()) = "term2"]', output, 1
       assert_xpath '(//dl/dt)[2]/following-sibling::dd/p[text() = "def2"]', output, 1
+    end
+
+    test 'should parse sibling items using same rules' do
+      input = <<-EOS
+term1;; ;; def1
+term2;; ;; def2
+      EOS
+      output = render_string input
+      assert_xpath '//dl', output, 1
+      assert_xpath '//dl/dt', output, 2
+      assert_xpath '//dl/dt/following-sibling::dd', output, 2
+      assert_xpath '(//dl/dt)[1][normalize-space(text()) = "term1"]', output, 1
+      assert_xpath '(//dl/dt)[1]/following-sibling::dd/p[text() = ";; def1"]', output, 1
+      assert_xpath '(//dl/dt)[2][normalize-space(text()) = "term2"]', output, 1
+      assert_xpath '(//dl/dt)[2]/following-sibling::dd/p[text() = ";; def2"]', output, 1
     end
 
     test "single-line indented adjacent elements" do
@@ -2046,16 +2187,24 @@ def2
       assert_xpath '(//dl/dt)[2]/following-sibling::dd/p[text() = "def2"]', output, 1
     end
 
-    test "element with anchor" do
+    test 'should discover anchor at start of description term text and register it as a reference' do
       input = <<-EOS
-[[term1]]term1:: def1
-[[term2]]term2:: def2
+The highest peak in the Front Range is <<grays-peak>>, which tops <<mount-evans>> by just a few feet.
+
+[[mount-evans,Mount Evans]]Mount Evans:: 14,271 feet
+[[grays-peak]]Grays Peak:: 14,278 feet
       EOS
-      output = render_string input
+      doc = document_from_string input
+      refs = doc.catalog[:refs]
+      assert refs.key?('mount-evans')
+      assert refs.key?('grays-peak')
+      output = doc.convert :header_footer => false
+      assert_xpath '(//p)[1]/a[@href="#grays-peak"][text()="Grays Peak"]', output, 1
+      assert_xpath '(//p)[1]/a[@href="#mount-evans"][text()="Mount Evans"]', output, 1
       assert_xpath '//dl', output, 1
       assert_xpath '//dl/dt', output, 2
-      assert_xpath '(//dl/dt)[1]/a[@id = "term1"]', output, 1
-      assert_xpath '(//dl/dt)[2]/a[@id = "term2"]', output, 1
+      assert_xpath '(//dl/dt)[1]/a[@id="mount-evans"]', output, 1
+      assert_xpath '(//dl/dt)[2]/a[@id="grays-peak"]', output, 1
     end
 
     test "missing space before term does not produce description list" do
@@ -2326,6 +2475,18 @@ A term::::: a description
       assert_xpath '//dt', output, 1
       assert_xpath '//dt[text()="A term:"]', output, 1
       assert_xpath '//dd/p[text()="a description"]', output, 1
+    end
+
+    test 'text method of dd node should return nil if dd node only contains blocks' do
+      input = <<-EOS
+term::
++
+paragraph
+      EOS
+
+      doc = document_from_string input
+      dd = doc.blocks[0].items[0][1]
+      assert_nil dd.text
     end
   end
 
@@ -2772,6 +2933,23 @@ last question::
       assert_css 'bibliodiv > bibliomixed:nth-child(1) > bibliomisc > anchor[xreflabel="[taoup]"]', output, 1
       assert_css 'bibliodiv > bibliomixed:nth-child(2) > bibliomisc > anchor', output, 1
       assert_css 'bibliodiv > bibliomixed:nth-child(2) > bibliomisc > anchor[xreflabel="[walsh-muellner]"]', output, 1
+    end
+
+    test 'should warn if a bibliography ID is already in use' do
+      input = <<-EOS
+[bibliography]
+* [[[Fowler]]] Fowler M. _Analysis Patterns: Reusable Object Models_.
+Addison-Wesley. 1997.
+* [[[Fowler]]] Fowler M. _Analysis Patterns: Reusable Object Models_.
+Addison-Wesley. 1997.
+      EOS
+      using_memory_logger do |logger|
+        output = render_embedded_string input
+        assert_css '.ulist.bibliography', output, 1
+        assert_css '.ulist.bibliography ul li:nth-child(1) p a#Fowler', output, 1
+        assert_css '.ulist.bibliography ul li:nth-child(2) p a#Fowler', output, 1
+        assert_message logger, :WARN, '<stdin>: line 4: id assigned to bibliography anchor already in use: Fowler', Hash
+      end
     end
 
     test 'should automatically add bibliography style to top-level lists in bibliography section' do
@@ -3906,7 +4084,7 @@ context 'Callout lists' do
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 <1> Describe the first line
 <2> Describe the second line
@@ -3930,7 +4108,7 @@ puts doc.render # <3>
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 
 Paragraph.
@@ -3958,7 +4136,7 @@ Paragraph.
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <2>
+puts doc.convert # <2>
 ----
 <1> Import the library
 <2> Where the magic happens
@@ -3980,7 +4158,7 @@ puts doc.render # <2>
 ----
 require 'asciidoctor' # <2>
 doc = Asciidoctor::Document.new('Hello, World!') # <3>
-puts doc.render # <1>
+puts doc.convert # <1>
 ----
 <1> Describe the first line
 <2> Describe the second line
@@ -4010,7 +4188,7 @@ require 'asciidoctor' # <1>
 [source, ruby]
 ----
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 
 <1> Describe the first line
@@ -4042,7 +4220,7 @@ require 'asciidoctor' # <1>
 [source, ruby]
 ----
 doc = Asciidoctor::Document.new('Hello, World!') # <1>
-puts doc.render # <2>
+puts doc.convert # <2>
 ----
 <1> Describe the second line
 <2> Describe the third line
@@ -4068,7 +4246,7 @@ puts doc.render # <2>
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 <1> Imports the library
 as a RubyGem
@@ -4093,7 +4271,7 @@ You can write this to file rather than printing to stdout.
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 <1> Imports the library
 as a RubyGem
@@ -4142,7 +4320,7 @@ puts "The syntax <1> at the end of the line makes a code callout"
 ----
 require 'asciidoctor' <1>
 doc = Asciidoctor.load('Hello, World!') # <2> <3> <4>
-puts doc.render <5><6>
+puts doc.convert <5><6>
 exit 0
 ----
 <1> Require library
@@ -4195,11 +4373,13 @@ foo::
 
 <1> Not pointing to a callout
     EOS
-    output, warnings = redirect_streams {|_, err| [(render_embedded_string input), err.string] }
-    assert_xpath '//dl//b', output, 0
-    assert_xpath '//dl/dd/p[text()="bar <1>"]', output, 1
-    assert_xpath '//ol/li/p[text()="Not pointing to a callout"]', output, 1
-    assert_includes warnings, 'line 4: no callouts refer to list item 1'
+    using_memory_logger do |logger|
+      output = render_embedded_string input
+      assert_xpath '//dl//b', output, 0
+      assert_xpath '//dl/dd/p[text()="bar <1>"]', output, 1
+      assert_xpath '//ol/li/p[text()="Not pointing to a callout"]', output, 1
+      assert_message logger, :WARN, '<stdin>: line 4: no callout found for <1>', Hash
+    end
   end
 
   test 'should not recognize callouts in an indented outline list paragraph' do
@@ -4209,11 +4389,13 @@ foo::
 
 <1> Not pointing to a callout
     EOS
-    output, warnings = redirect_streams {|_, err| [(render_embedded_string input), err.string] }
-    assert_xpath '//ul//b', output, 0
-    assert_xpath %(//ul/li/p[text()="foo\nbar <1>"]), output, 1
-    assert_xpath '//ol/li/p[text()="Not pointing to a callout"]', output, 1
-    assert_includes warnings, 'line 4: no callouts refer to list item 1'
+    using_memory_logger do |logger|
+      output = render_embedded_string input
+      assert_xpath '//ul//b', output, 0
+      assert_xpath %(//ul/li/p[text()="foo\nbar <1>"]), output, 1
+      assert_xpath '//ol/li/p[text()="Not pointing to a callout"]', output, 1
+      assert_message logger, :WARN, '<stdin>: line 4: no callout found for <1>', Hash
+    end
   end
 
   test 'should warn if numbers in callout list are out of sequence' do
@@ -4227,10 +4409,14 @@ foo::
 Beans are fun.
 <3> An actual bean.
     EOS
-    output, warnings = redirect_streams {|_, err| [(render_embedded_string input), err.string] }
-    assert_xpath '//ol/li', output, 2
-    assert_includes warnings, 'line 8: callout list item index: expected 2 got 3'
-    assert_includes warnings, 'line 8: no callouts refer to list item 2'
+    using_memory_logger do |logger|
+      output = render_embedded_string input
+      assert_xpath '//ol/li', output, 2
+      assert_messages logger, [
+        [:WARN, '<stdin>: line 8: callout list item index: expected 2, got 3', Hash],
+        [:WARN, '<stdin>: line 8: no callout found for <2>', Hash]
+      ]
+    end
   end
 
   test 'should remove line comment chars that precedes callout number' do
@@ -4312,7 +4498,7 @@ Violets are blue <2>
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') # <2>
-puts doc.render # <3>
+puts doc.convert # <3>
 ----
 <1> Describe the first line
 <2> Describe the second line
@@ -4335,7 +4521,7 @@ puts doc.render # <3>
 ----
 require 'asciidoctor' # <1>
 doc = Asciidoctor::Document.new('Hello, World!') #<2>
-puts doc.render #<3>
+puts doc.convert #<3>
 ----
 <1> Describe the first line
 <2> Describe the second line
@@ -4367,7 +4553,17 @@ context 'Checklists' do
 - plain
     EOS
 
-    output = render_embedded_string input
+    doc = document_from_string input
+    checklist = doc.blocks[0]
+    assert checklist.option?('checklist')
+    #assert_equal 'checklist', checklist.attributes['options']
+    assert checklist.items[0].attr?('checkbox')
+    refute checklist.items[0].attr?('checked')
+    assert checklist.items[1].attr?('checkbox')
+    assert checklist.items[1].attr?('checked')
+    refute checklist.items[4].attr?('checkbox')
+
+    output = doc.convert :header_footer => false
     assert_css '.ulist.checklist', output, 1
     assert_xpath %((/*[@class="ulist checklist"]/ul/li)[1]/p[text()="#{decode_char 10063} todo"]), output, 1
     assert_xpath %((/*[@class="ulist checklist"]/ul/li)[2]/p[text()="#{decode_char 10003} done"]), output, 1
@@ -4394,12 +4590,17 @@ context 'Checklists' do
     input = <<-EOS
 :icons: font
 
-[options="interactive"]
+[%interactive]
 - [ ] todo
 - [x] done
     EOS
 
-    output = render_embedded_string input
+    doc = document_from_string input
+    checklist = doc.blocks[0]
+    assert checklist.option?('checklist')
+    assert checklist.option?('interactive')
+
+    output = doc.convert :header_footer => false
     assert_css '.ulist.checklist', output, 1
     assert_css '.ulist.checklist li input[type="checkbox"]', output, 2
     assert_css '.ulist.checklist li input[type="checkbox"][disabled]', output, 0
@@ -4555,5 +4756,25 @@ listing block in list item 1
     assert_equal [:specialcharacters], list.items[2].subs
     assert_equal '`three`', list.items[2].text
     assert_equal '<mark>four</mark>', list.items[3].text
+  end
+
+  test 'should set lineno to line number in source where list starts' do
+    input = <<-EOS
+* bullet 1
+** bullet 1.1
+*** bullet 1.1.1
+* bullet 2
+    EOS
+    doc = document_from_string input, :sourcemap => true
+    lists = doc.find_by :context => :ulist
+    assert_equal 1, lists[0].lineno
+    assert_equal 2, lists[1].lineno
+    assert_equal 3, lists[2].lineno
+
+    list_items = doc.find_by :context => :list_item
+    assert_equal 1, list_items[0].lineno
+    assert_equal 2, list_items[1].lineno
+    assert_equal 3, list_items[2].lineno
+    assert_equal 4, list_items[3].lineno
   end
 end

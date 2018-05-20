@@ -340,6 +340,24 @@ context 'Extensions' do
       end
     end
 
+    test 'should raise exception if constant name is invalid' do
+      begin
+        Asciidoctor::Extensions.class_for_name 'foobar'
+        flunk 'Expecting RuntimeError to be raised'
+      rescue NameError => e
+        assert_equal 'Could not resolve class for name: foobar', e.message
+      end
+    end
+
+    test 'should raise exception if class not found in scope' do
+      begin
+        Asciidoctor::Extensions.class_for_name 'Asciidoctor::Extensions::String'
+        flunk 'Expecting RuntimeError to be raised'
+      rescue NameError => e
+        assert_equal 'Could not resolve class for name: Asciidoctor::Extensions::String', e.message
+      end
+    end
+
     test 'should raise exception if name resolves to module' do
       begin
         Asciidoctor::Extensions.class_for_name 'Asciidoctor::Extensions'
@@ -359,6 +377,29 @@ context 'Extensions' do
       clazz = Asciidoctor::Extensions.resolve_class 'Asciidoctor::Document'
       refute_nil clazz
       assert_equal Asciidoctor::Document, clazz
+    end
+
+    test 'should not resolve class if not in scope' do
+      begin
+        Asciidoctor::Extensions.resolve_class 'Asciidoctor::Extensions::String'
+        flunk 'Expecting RuntimeError to be raised'
+      rescue NameError => e
+        assert_equal 'Could not resolve class for name: Asciidoctor::Extensions::String', e.message
+      end
+    end
+
+    test 'should raise NameError if extension class cannot be resolved from string' do
+      begin
+        Asciidoctor::Extensions.register do
+          block 'foobar'
+        end
+        empty_document
+        flunk 'Expecting RuntimeError to be raised'
+      rescue NameError => e
+        assert_equal 'Could not resolve class for name: foobar', e.message
+      ensure
+        Asciidoctor::Extensions.unregister_all
+      end
     end
 
     test 'should allow standalone registry to be created but not registered' do
@@ -650,7 +691,7 @@ last line
         end
       end
       # Safe Mode is not required here
-      document = empty_document :base_dir => File.expand_path(File.dirname(__FILE__)), :extension_registry => registry
+      document = empty_document :base_dir => testdir, :extension_registry => registry
       reader = Asciidoctor::PreprocessorReader.new document, input, nil, :normalize => true
       lines = []
       lines << reader.read_line
@@ -681,6 +722,25 @@ content
 
         doc = document_from_string input
         assert_equal 'Ghost Writer', doc.author
+      ensure
+        Asciidoctor::Extensions.unregister_all
+      end
+    end
+
+    test 'should set source_location on document before invoking tree processors' do
+      begin
+        Asciidoctor::Extensions.register do
+          tree_processor do
+            process do |doc|
+              para = create_paragraph doc.blocks.last.parent, %(file: #{doc.file}, lineno: #{doc.lineno}), {}
+              doc << para
+            end
+          end
+        end
+
+        sample_doc = fixture_path 'sample.asciidoc'
+        doc = Asciidoctor.load_file sample_doc, :sourcemap => true
+        assert_includes doc.convert, 'file: sample.asciidoc, lineno: 1'
       ensure
         Asciidoctor::Extensions.unregister_all
       end
@@ -775,6 +835,28 @@ Hi there!
       end
     end
 
+    test 'should invoke processor for custom block in an AsciiDoc table cell' do
+      input = <<-EOS
+|===
+a|
+[yell]
+Hi there!
+|===
+      EOS
+
+      begin
+        Asciidoctor::Extensions.register do
+          block UppercaseBlock
+        end
+
+        output = render_embedded_string input
+        assert_xpath '/table//p', output, 1
+        assert_xpath '/table//p[text()="HI THERE!"]', output, 1
+      ensure
+        Asciidoctor::Extensions.unregister_all
+      end
+    end
+
     test 'should pass cloaked context in attributes passed to process method of custom block' do
       input = <<-EOS
 [custom]
@@ -819,9 +901,32 @@ snippet::12345[mode=edit]
       end
     end
 
+    test 'should invoke processor for custom block macro in an AsciiDoc table cell' do
+      input = <<-EOS
+|===
+a|message::hi[]
+|===
+      EOS
+
+      begin
+        Asciidoctor::Extensions.register do
+          block_macro :message do
+            process do |parent, target, attrs|
+              create_paragraph parent, target.upcase, {}
+            end
+          end
+        end
+
+        output = render_embedded_string input
+        assert_xpath '/table//p[text()="HI"]', output, 1
+      ensure
+        Asciidoctor::Extensions.unregister_all
+      end
+    end
+
     test 'should match short form of block macro' do
       input = <<-EOS
-custom_toc::[]
+custom-toc::[]
       EOS
 
       resolved_target = nil
@@ -829,7 +934,7 @@ custom_toc::[]
       begin
         Asciidoctor::Extensions.register do
           block_macro do
-            named :custom_toc
+            named 'custom-toc'
             process do |parent, target, attrs|
               resolved_target = target
               create_pass_block parent, '<!-- custom toc goes here -->', {}, :content_model => :raw
@@ -903,7 +1008,7 @@ custom_toc::[]
           end
 
           inline_macro do
-            named :full_attributes
+            named :'full-attributes'
             resolves_attributes '1:name' => nil
             process do |parent, target, attrs|
               %(target=#{target.inspect}, attributes=#{attrs.sort_by {|k, _| k.to_s }.inspect})
@@ -911,7 +1016,7 @@ custom_toc::[]
           end
 
           inline_macro do
-            named :full_text
+            named :'full-text'
             resolves_attributes false
             process do |parent, target, attrs|
               %(target=#{target.inspect}, attributes=#{attrs.sort_by {|k, _| k.to_s }.inspect})
@@ -935,10 +1040,10 @@ short_attributes:[]
 short_attributes:[value,key=val]
 short_text:[]
 short_text:[[text\\]]
-full_attributes:target[]
-full_attributes:target[value,key=val]
-full_text:target[]
-full_text:target[[text\\]]
+full-attributes:target[]
+full-attributes:target[value,key=val]
+full-text:target[]
+full-text:target[[text\\]]
 @target
 ++++
         EOS
@@ -982,11 +1087,11 @@ target="target", attributes=[]
       end
     end
 
-    test 'should not carry over attributes if block processor returns nil' do
+    test 'wip should not carry over attributes if block processor returns nil' do
       begin
         Asciidoctor::Extensions.register do
           block do
-            named :skipme
+            named 'skip-me'
             on_context :paragraph
             parses_content_as :raw
             process do |parent, reader, attrs|
@@ -996,7 +1101,7 @@ target="target", attributes=[]
         end
         input = <<-EOS
 .unused title
-[skipme]
+[skip-me]
 not rendered
 
 --
@@ -1118,6 +1223,7 @@ content
             process do |parent, target, attrs|
               opts = (level = attrs.delete 'level') ? { :level => level.to_i } : {}
               attrs['id'] = false if attrs['id'] == 'false'
+              parent = parent.parent if parent.context == :preamble
               sect = create_section parent, 'Section Title', attrs, opts
               nil
             end
@@ -1135,20 +1241,26 @@ sect::[%s]
         {
           ''                       => ['chapter',  1, false, true, '_section_title'],
           'level=0'                => ['part',     0, false, false, '_section_title'],
+          'level=0,alt'            => ['part',     0, false, true, '_section_title', { 'partnums' => '' }],
           'level=0,style=appendix' => ['appendix', 1, true,  true, '_section_title'],
           'style=appendix'         => ['appendix', 1, true,  true, '_section_title'],
           'style=glossary'         => ['glossary', 1, true,  false, '_section_title'],
+          'style=glossary,alt'     => ['glossary', 1, true,  :chapter, '_section_title', { 'sectnums' => 'all' }],
           'style=abstract'         => ['chapter',  1, false, true, '_section_title'],
           'id=section-title'       => ['chapter',  1, false, true, 'section-title'],
           'id=false'               => ['chapter',  1, false, true, nil]
-        }.each do |attrlist, (expect_sectname, expect_level, expect_special, expect_numbered, expect_id)|
+        }.each do |attrlist, (expect_sectname, expect_level, expect_special, expect_numbered, expect_id, extra_attrs)|
           input = input_tpl % attrlist
-          document_from_string input, :safe => :server
+          document_from_string input, :safe => :server, :attributes => extra_attrs
           assert_equal expect_sectname, sect.sectname
           assert_equal expect_level, sect.level
           assert_equal expect_special, sect.special
           assert_equal expect_numbered, sect.numbered
-          assert_equal expect_id, sect.id
+          if expect_id
+            assert_equal expect_id, sect.id
+          else
+            assert_nil sect.id
+          end
         end
       ensure
         Asciidoctor::Extensions.unregister_all
@@ -1173,7 +1285,6 @@ sample content
         Asciidoctor::Extensions.unregister_all
       end
     end
-
 
     test 'should add multiple docinfo to document' do
       input = <<-EOS

@@ -17,7 +17,7 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 // Variables:
-:release-version: 1.5.6.1
+:release-version: 1.5.7
 // URIs:
 :uri-org: https://github.com/asciidoctor
 :uri-repo: {uri-org}/asciidoctor
@@ -59,7 +59,7 @@ endif::[]
 // images:
 :image-uri-screenshot: https://raw.githubusercontent.com/asciidoctor/asciidoctor/master/screenshot.png
 
-{uri-project}/[Asciidoctor]は _高速な_ テキストプロセッサで {uri-what-is-asciidoc}[Asciidoc] をHTML5, DocBook 5(4.5)や他のフォーマットに変換するツールチェインを配布しています.
+{uri-project}/[Asciidoctor]は _高速な_ テキストプロセッサで {uri-what-is-asciidoc}[AsciiDoc] をHTML5, DocBook 5(4.5)や他のフォーマットに変換するツールチェインを配布しています.
 AsciidoctorはRubyで書かれており, RubyGemとしてパッケージされ,  {uri-rubygem}[RubyGems.org] で配布されています.
 gemはいくつかのLinuxディストリビューション, Fedora, Debian, Ubuntuにも含まれています.
 Asciidoctorはオープンソース {uri-repo}[hosted on Github] で {uri-license}[the MIT licence]のもとに配布されます.
@@ -74,7 +74,7 @@ endif::[]
 
 .Key documentation
 [.compact]
-* {uri-docs}/what-is-asciidoc[What is Asciidoc?]
+* {uri-docs}/what-is-asciidoc[What is AsciiDoc?]
 * {uri-docs}/asciidoc-writers-guide[AsciiDoc Writer's Guide]
 * {uri-docs}/asciidoc-syntax-quick-reference[AsciiDoc Syntax Reference]
 * {uri-docs}/user-manual[Asciidoctor User Manual]
@@ -127,7 +127,7 @@ AsciidoctorはLinux, OS X (Mac)とWindowsで動き, 下記の {uri-ruby}[Ruby]�
 
 [CAUTION]
 ====
-もし非英語環境のWindowsを使っているなら, Asciidoctorを起動した時に`Encoding::UndefinedConversionError`に遭遇するでしょう.
+もし非英語環境のWindowsを使っているなら, Asciidoctorを起動した時に `Encoding::UndefinedConversionError` に遭遇するでしょう.
 これを解決するには使っているコンソールの有効なコードページをUTF-8:
 
  chcp 65001
@@ -148,7 +148,7 @@ TIP: Linuxパッケージマネージャを用いてインストールするこ�
 
 === (a) gem install
 
-ターミナルを開, 入力しましょう (先頭の`$`は除く):
+ターミナルを開き, 入力しましょう (先頭の`$`は除く):
 
  $ gem install asciidoctor
 
@@ -273,7 +273,7 @@ APIは他のRubyソフトウェア, Rails, SinatraとGitHub, そして他の言�
 
 === Command line interface (CLI)
 
-`asciidoctorjs` コマンドはAsciidoctorをコマンドライン(つまりターミナル)から起動することを可能にします.
+`asciidoctor` コマンドはAsciidoctorをコマンドライン(つまりターミナル)から起動することを可能にします.
 
 次のコマンドはファイルREADME.adocをHTMLに変換し, 結果を同じディレクトリのREADME.htmlに保存します.
 生成されたHTMLファイルの名前はソースファイル依存し, その拡張子を `.html` に変えます.
@@ -381,7 +381,7 @@ Twitter:: #asciidoctor hashtag or @asciidoctor mention
 Chat (Gitter):: image:https://badges.gitter.im/Join%20In.svg[Gitter, link=https://gitter.im/asciidoctor/asciidoctor]
 
 ifdef::env-github[]
-Further information and documentation about Asciidoctor can be found on the project's website.
+以下のプロジェクトサイトに、Asciidoctorに関するさらに詳しい情報やドキュメントがあります。
 
 {uri-project}/[Home] | {uri-news}[News] | {uri-docs}[Docs]
 endif::[]
@@ -394,14 +394,24 @@ Asciidoctor organization on GitHub:: {uri-org}
 
 == Copyright and Licensing
 
-Copyright (C) 2012-2017 Dan Allen, Ryan Waldron and the Asciidoctor Project.
-Free use of this software is granted under the terms of the MIT License.
+Copyright (C) 2012-2018 Dan Allen, Ryan Waldron and the Asciidoctor Project.
+本ソフトウェアはMITライセンスのもとで自由に使用できます.
 
-See the {uri-license}[LICENSE] file for details.
+詳細は {uri-license}[LICENSE] ファイルを参照してください.
 
 == Authors
 
-*Asciidoctor* is led by https://github.com/mojavelinux[Dan Allen] and https://github.com/graphitefriction[Sarah White] and has received contributions from {uri-contributors}[many other individuals] in Asciidoctor's awesome community.
-The project was initiated in 2012 by https://github.com/erebor[Ryan Waldron] and based on {uri-prototype}[a prototype] written by https://github.com/nickh[Nick Hengeveld].
+*Asciidoctor* は https://github.com/mojavelinux[Dan Allen] と https://github.com/graphitefriction[Sarah White] が先導し, Asciidoctorの素晴らしきコミュニティの数多くのメンバからコントリビューションを受けてきました．
+このプロジェクトは2012年から https://github.com/nickh[Nick Hengeveld] の {uri-prototype}[プロトタイプ] をベースに https://github.com/erebor[Ryan Waldron] により創始されました.
 
-*AsciiDoc* was started by Stuart Rackham and has received contributions from many other individuals in the AsciiDoc community.
+*AsciiDoc* は Stuart Rackham により創始され, AsciiDocコミュニティの数多くのメンバからコントリビューションを受けてきました.
+
+ifndef::env-site[]
+== Changelog
+
+ifeval::[{safe-mode-level} < 20]
+include::CHANGELOG.adoc[tag=compact,leveloffset=+1]
+endif::[]
+
+リリースごとの変更一覧は {uri-changelog}[CHANGELOG] を参照してください.
+endif::[]

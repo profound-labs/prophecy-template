@@ -1,5 +1,10 @@
 # encoding: UTF-8
-require File.expand_path '../lib/asciidoctor/version', __FILE__
+begin
+  require File.expand_path '../lib/asciidoctor/version', __FILE__
+rescue LoadError
+  require 'asciidoctor/version'
+end
+
 require 'open3' unless defined? Open3
 
 Gem::Specification.new do |s|
@@ -11,13 +16,19 @@ Gem::Specification.new do |s|
   s.email = ['dan.j.allen@gmail.com']
   s.homepage = 'http://asciidoctor.org'
   s.license = 'MIT'
+  s.metadata = {
+    'bug_tracker_uri' => 'https://github.com/asciidoctor/asciidoctor/issues',
+    'changelog_uri' => 'https://github.com/asciidoctor/asciidoctor/blob/master/CHANGELOG.adoc',
+    'mailing_list_uri' => 'http://discuss.asciidoctor.org',
+    'source_code_uri' => 'https://github.com/asciidoctor/asciidoctor'
+  }
 
   files = begin
     (result = Open3.popen3('git ls-files -z') {|_, out| out.read }.split %(\0)).empty? ? Dir['**/*'] : result
   rescue
     Dir['**/*']
   end
-  s.files = files.grep(/^(?:(?:data|lib|man)\/.+|Gemfile|Rakefile|LICENSE|(?:CHANGELOG|CONTRIBUTINGREADME(?:-\w+)?)\.adoc|#{s.name}\.gemspec)$/)
+  s.files = files.grep(/^(?:(?:data|lib|man)\/.+|Gemfile|Rakefile|LICENSE|(?:CHANGELOG|CONTRIBUTING|README(?:-\w+)?)\.adoc|#{s.name}\.gemspec)$/)
   s.executables = files.grep(/^bin\//).map {|f| File.basename f }
   s.require_paths = ['lib']
   s.test_files = files.grep(/^(?:(?:features|test)\/.+)$/)
@@ -42,7 +53,5 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'thread_safe', '~> 0.3.0'
   # tilt is needed for testing custom templates
   s.add_development_dependency 'tilt', '~> 2.0.0'
-  s.add_development_dependency 'yard', '0.9.8'
-  s.add_development_dependency 'yard-tomdoc', '~> 0.7.0'
   s.add_development_dependency 'minitest', '~> 5.3.0'
 end

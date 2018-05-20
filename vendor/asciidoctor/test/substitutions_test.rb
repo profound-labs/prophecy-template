@@ -37,15 +37,12 @@ context 'Substitutions' do
       assert_equal %(this<br>\nis<br>\n&#8594; Asciidoctor<br>\n<br>\n), result
     end
 
-    test 'should expand subs passed to apply_subs when expand argument is set' do
+    test 'should expand subs passe to expand_subs' do
       para = block_from_string %({program}\n*bold*\n2 > 1)
       para.document.attributes['program'] = 'Asciidoctor'
-      result = para.apply_subs para.lines, [:specialchars], true
-      assert_equal ['{program}', '*bold*', '2 &gt; 1'], result
-      result = para.apply_subs para.lines, [:none], true
-      assert_equal ['{program}', '*bold*', '2 > 1'], result
-      result = para.apply_subs para.lines, [:normal], true
-      assert_equal ['Asciidoctor', '<strong>bold</strong>', '2 &gt; 1'], result
+      assert_equal [:specialcharacters], (para.expand_subs [:specialchars])
+      refute para.expand_subs([:none])
+      assert_equal [:specialcharacters, :quotes, :attributes, :replacements, :macros, :post_replacements], (para.expand_subs [:normal])
     end
 
     test 'apply_subs should allow the subs argument to be nil' do
@@ -553,12 +550,12 @@ context 'Substitutions' do
 
     test 'quoted text with id shorthand' do
       para = block_from_string(%q{[#bond]#007#})
-      assert_equal '<a id="bond"></a>007', para.sub_quotes(para.source)
+      assert_equal '<span id="bond">007</span>', para.sub_quotes(para.source)
     end
 
     test 'quoted text with id and role shorthand' do
       para = block_from_string(%q{[#bond.white.red-background]#007#})
-      assert_equal '<a id="bond"></a><span class="white red-background">007</span>', para.sub_quotes(para.source)
+      assert_equal '<span id="bond" class="white red-background">007</span>', para.sub_quotes(para.source)
     end
 
     test 'quoted text with id and role shorthand using docbook backend' do
@@ -608,12 +605,12 @@ context 'Substitutions' do
     end
 
     test 'a mailto macro with text and subject should be interpreted as a mailto link' do
-      para = block_from_string('mailto:doc.writer@asciidoc.org[Doc Writer, Pull request]', :attributes => {'linkattrs' => ''})
+      para = block_from_string('mailto:doc.writer@asciidoc.org[Doc Writer, Pull request]')
       assert_equal %q{<a href="mailto:doc.writer@asciidoc.org?subject=Pull%20request">Doc Writer</a>}, para.sub_macros(para.source)
     end
 
     test 'a mailto macro with text, subject and body should be interpreted as a mailto link' do
-      para = block_from_string('mailto:doc.writer@asciidoc.org[Doc Writer, Pull request, Please accept my pull request]', :attributes => {'linkattrs' => ''})
+      para = block_from_string('mailto:doc.writer@asciidoc.org[Doc Writer, Pull request, Please accept my pull request]')
       assert_equal %q{<a href="mailto:doc.writer@asciidoc.org?subject=Pull%20request&amp;body=Please%20accept%20my%20pull%20request">Doc Writer</a>}, para.sub_macros(para.source)
     end
 
@@ -713,7 +710,7 @@ context 'Substitutions' do
     end
 
     test 'an image macro with an inline SVG image should be converted to an svg element' do
-      para = block_from_string('image:circle.svg[Tiger,100,opts=inline]', :safe => Asciidoctor::SafeMode::SERVER, :attributes => { 'imagesdir' => 'fixtures', 'docdir' => ::File.dirname(__FILE__) })
+      para = block_from_string('image:circle.svg[Tiger,100,opts=inline]', :safe => Asciidoctor::SafeMode::SERVER, :attributes => { 'imagesdir' => 'fixtures', 'docdir' => testdir })
       result = para.sub_macros(para.source).gsub(/>\s+</, '><')
       assert_match(/<svg\s[^>]*width="100px"[^>]*>/, result)
       refute_match(/<svg\s[^>]*width="500px"[^>]*>/, result)
@@ -722,7 +719,7 @@ context 'Substitutions' do
     end
 
     test 'an image macro with an inline SVG image should be converted to an svg element even when data-uri is set' do
-      para = block_from_string('image:circle.svg[Tiger,100,opts=inline]', :safe => Asciidoctor::SafeMode::SERVER, :attributes => { 'data-uri' => '', 'imagesdir' => 'fixtures', 'docdir' => ::File.dirname(__FILE__) })
+      para = block_from_string('image:circle.svg[Tiger,100,opts=inline]', :safe => Asciidoctor::SafeMode::SERVER, :attributes => { 'data-uri' => '', 'imagesdir' => 'fixtures', 'docdir' => testdir })
       assert_match(/<svg\s[^>]*width="100px">/, para.sub_macros(para.source).gsub(/>\s+</, '><'))
     end
 
@@ -766,6 +763,12 @@ context 'Substitutions' do
           para.sub_macros(para.source).gsub(/>\s+</, '><')
     end
 
+    test 'rel=nofollow should be added to an image with a link when the nofollow option is set' do
+      para = block_from_string 'image:tiger.png[Tiger,link=http://en.wikipedia.org/wiki/Tiger,opts=nofollow]'
+      assert_equal %{<span class="image"><a class="image" href="http://en.wikipedia.org/wiki/Tiger" rel="nofollow"><img src="tiger.png" alt="Tiger"></a></span>},
+          para.sub_macros(para.source).gsub(/>\s+</, '><')
+    end
+
     test 'a multi-line image macro with text and dimensions should be interpreted as an image with alt text and dimensions' do
       para = block_from_string(%(image:tiger.png[Another\nAwesome\nTiger, 200,\n100]))
       assert_equal %{<span class="image"><img src="tiger.png" alt="Another Awesome Tiger" width="200" height="100"></span>},
@@ -780,7 +783,7 @@ context 'Substitutions' do
 
     test 'an inline image macro with a float attribute should be interpreted as a floating image' do
       para = block_from_string %(image:http://example.com/images/tiger.png[tiger, float="right"] Beware of the tigers!)
-      assert_equal %{<span class="image" style="float: right"><img src="http://example.com/images/tiger.png" alt="tiger"></span> Beware of the tigers!},
+      assert_equal %{<span class="image right"><img src="http://example.com/images/tiger.png" alt="tiger"></span> Beware of the tigers!},
           para.sub_macros(para.source).gsub(/>\s+</, '><')
     end
 
@@ -837,12 +840,11 @@ context 'Substitutions' do
 == image:{iconsdir}/dot.gif[dot] Title
       EOS
 
-      sect, warnings = redirect_streams do |_, err|
-        [(block_from_string input, :attributes => { 'data-uri' => '', 'iconsdir' => 'fixtures', 'docdir' => ::File.dirname(__FILE__) }, :safe => :server, :catalog_assets => true), err.string]
+      using_memory_logger do |logger|
+        sect = block_from_string input, :attributes => { 'data-uri' => '', 'iconsdir' => 'fixtures', 'docdir' => testdir }, :safe => :server, :catalog_assets => true
+        assert_includes sect.document.catalog[:images], 'fixtures/dot.gif'
+        assert logger.empty?
       end
-      assert_includes sect.document.catalog[:images], 'fixtures/dot.gif'
-      refute_nil warnings
-      assert_empty warnings
     end
 
     test 'an icon macro should be interpreted as an icon if icons are enabled' do
@@ -877,7 +879,7 @@ context 'Substitutions' do
 
     test 'a single-line footnote macro should be registered and rendered as a footnote' do
       para = block_from_string('Sentence text footnote:[An example footnote.].')
-      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal 1, footnote.index
@@ -887,7 +889,7 @@ context 'Substitutions' do
 
     test 'a multi-line footnote macro should be registered and rendered as a footnote without endline' do
       para = block_from_string("Sentence text footnote:[An example footnote\nwith wrapped text.].")
-      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal 1, footnote.index
@@ -897,7 +899,7 @@ context 'Substitutions' do
 
     test 'an escaped closing square bracket in a footnote should be unescaped when rendered' do
       para = block_from_string(%(footnote:[a #{BACKSLASH}] b].))
-      assert_equal %(<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal "a ] b", footnote.text
@@ -905,7 +907,7 @@ context 'Substitutions' do
 
     test 'a footnote macro can be directly adjacent to preceding word' do
       para = block_from_string('Sentence textfootnote:[An example footnote.].')
-      assert_equal %(Sentence text<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
     end
 
     test 'a footnote macro may contain an escaped backslash' do
@@ -922,7 +924,7 @@ context 'Substitutions' do
 
     test 'a footnote macro may contain a link macro' do
       para = block_from_string('Share your code. footnote:[https://github.com[GitHub]]')
-      assert_equal %(Share your code. <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
+      assert_equal %(Share your code. <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote1 = para.document.catalog[:footnotes][0]
       assert_equal '<a href="https://github.com">GitHub</a>', footnote1.text
@@ -931,7 +933,7 @@ context 'Substitutions' do
     test 'a footnote macro may contain a plain URL' do
       para = block_from_string %(the JLine footnote:[https://github.com/jline/jline2]\nlibrary.)
       result = para.sub_macros para.source
-      assert_equal %(the JLine <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>\nlibrary.), result
+      assert_equal %(the JLine <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>\nlibrary.), result
       assert_equal 1, para.document.catalog[:footnotes].size
       fn1 = para.document.catalog[:footnotes].first
       assert_equal '<a href="https://github.com/jline/jline2" class="bare">https://github.com/jline/jline2</a>', fn1.text
@@ -940,7 +942,7 @@ context 'Substitutions' do
     test 'a footnote macro followed by a semi-colon may contain a plain URL' do
       para = block_from_string %(the JLine footnote:[https://github.com/jline/jline2];\nlibrary.)
       result = para.sub_macros para.source
-      assert_equal %(the JLine <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>;\nlibrary.), result
+      assert_equal %(the JLine <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>;\nlibrary.), result
       assert_equal 1, para.document.catalog[:footnotes].size
       fn1 = para.document.catalog[:footnotes].first
       assert_equal '<a href="https://github.com/jline/jline2" class="bare">https://github.com/jline/jline2</a>', fn1.text
@@ -952,7 +954,7 @@ context 'Substitutions' do
       doc = para.document
       doc.register :refs, ['_install', (Asciidoctor::Inline.new doc, :anchor, 'Install', :type => :ref, :target => '_install'), 'Install']
       catalog = doc.catalog
-      assert_equal %(text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
+      assert_equal %(text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
       assert_equal 1, catalog[:footnotes].size
       footnote1 = catalog[:footnotes][0]
       assert_equal '<a href="#_install">install</a>', footnote1.text
@@ -960,7 +962,7 @@ context 'Substitutions' do
 
     test 'a footnote macro may contain an anchor macro' do
       para = block_from_string('text footnote:[a [[b\]\] \[[c\]\] d]')
-      assert_equal %(text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
+      assert_equal %(text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote1 = para.document.catalog[:footnotes][0]
       assert_equal 'a <a id="b"></a> [[c]] d', footnote1.text
@@ -977,7 +979,7 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
 
     test 'should increment index of subsequent footnote macros' do
       para = block_from_string("Sentence text footnote:[An example footnote.]. Sentence text footnote:[Another footnote.].")
-      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>. Sentence text <sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnote_2" title="View footnote.">2</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>. Sentence text <sup class="footnote">[<a id="_footnoteref_2" class="footnote" href="#_footnotedef_2" title="View footnote.">2</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 2, para.document.catalog[:footnotes].size
       footnote1 = para.document.catalog[:footnotes][0]
       assert_equal 1, footnote1.index
@@ -991,7 +993,7 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
 
     test 'a footnoteref macro with id and single-line text should be registered and rendered as a footnote' do
       para = block_from_string('Sentence text footnoteref:[ex1, An example footnote.].')
-      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal 1, footnote.index
@@ -1001,7 +1003,7 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
 
     test 'a footnoteref macro with id and multi-line text should be registered and rendered as a footnote without endlines' do
       para = block_from_string("Sentence text footnoteref:[ex1, An example footnote\nwith wrapped text.].")
-      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal 1, footnote.index
@@ -1011,7 +1013,7 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
 
     test 'a footnoteref macro with id should refer to footnoteref with same id' do
       para = block_from_string('Sentence text footnoteref:[ex1, An example footnote.]. Sentence text footnoteref:[ex1].')
-      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>. Sentence text <sup class="footnoteref">[<a class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
+      assert_equal %(Sentence text <sup class="footnote" id="_footnote_ex1">[<a id="_footnoteref_1" class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>. Sentence text <sup class="footnoteref">[<a class="footnote" href="#_footnotedef_1" title="View footnote.">1</a>]</sup>.), para.sub_macros(para.source)
       assert_equal 1, para.document.catalog[:footnotes].size
       footnote = para.document.catalog[:footnotes].first
       assert_equal 1, footnote.index
@@ -1019,9 +1021,66 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
       assert_equal 'An example footnote.', footnote.text
     end
 
-    test 'an unresolved footnoteref should not crash the processor' do
-      para = block_from_string('Sentence text footnoteref:[ex1].')
-      para.sub_macros para.source
+    test 'an unresolved footnote reference should produce a warning message' do
+      input = 'Sentence text.footnote:ex1[]'
+      using_memory_logger do |logger|
+        para = block_from_string input
+        para.sub_macros para.source
+        assert_message logger, :WARN, 'invalid footnote reference: ex1'
+      end
+    end
+
+    test 'inline footnote macro can be used to define and reference a footnote reference' do
+      input = <<-EOS
+You can download the software from the product page.footnote:sub[Option only available if you have an active subscription.]
+
+You can also file a support request.footnote:sub[]
+
+If all else fails, you can give us a call.footnoteref:[sub]
+      EOS
+
+      output = render_embedded_string input
+      assert_css '#_footnotedef_1', output, 1
+      assert_css 'p a[href="#_footnotedef_1"]', output, 3
+      assert_css '#footnotes .footnote', output, 1
+    end
+
+    test 'should parse multiple footnote references in a single line' do
+      input = <<-'EOS'
+notable text.footnote:id[about this [text\]], footnote:id[], footnote:id[]
+      EOS
+
+      output = render_embedded_string input
+      assert_xpath '(//p)[1]/sup[starts-with(@class,"footnote")]', output, 3
+      assert_xpath '(//p)[1]/sup[@class="footnote"]', output, 1
+      assert_xpath '(//p)[1]/sup[@class="footnoteref"]', output, 2
+      assert_xpath '(//p)[1]/sup[starts-with(@class,"footnote")]/a[@class="footnote"][text()="1"]', output, 3
+      assert_css '#footnotes .footnote', output, 1
+    end
+
+    test 'should not resolve an inline footnote macro missing both id and text' do
+      input = <<-EOS
+The footnote:[] macro can be used for defining and referencing footnotes.
+
+The footnoteref:[] macro is now deprecated.
+      EOS
+
+      output = render_embedded_string input
+      assert_includes output, 'The footnote:[] macro'
+      assert_includes output, 'The footnoteref:[] macro'
+    end
+
+    test 'inline footnote macro can define a numeric id without conflicting with auto-generated ID' do
+      input = <<-EOS
+You can download the software from the product page.footnote:1[Option only available if you have an active subscription.]
+      EOS
+
+      output = render_embedded_string input
+      assert_css '#_footnote_1', output, 1
+      assert_css 'p sup#_footnote_1', output, 1
+      assert_css 'p a#_footnoteref_1', output, 1
+      assert_css 'p a[href="#_footnotedef_1"]', output, 1
+      assert_css '#footnotes #_footnotedef_1', output, 1
     end
 
     test 'a single-line index term macro with a primary term should be registered as an index reference' do
@@ -1075,7 +1134,7 @@ foofootnote:[+http://example.com+]barfootnote:[+http://acme.com+]baz
     test 'should only escape enclosing brackets if concealed index term is preceded by a backslash' do
       input = %[National Institute of Science and Technology #{BACKSLASH}(((NIST)))]
       doc = document_from_string input, :header_footer => false
-      output = doc.render
+      output = doc.convert
       assert_xpath '//p[text()="National Institute of Science and Technology (NIST)"]', output, 1
       term = doc.catalog[:indexterms].first
       assert_equal 1, term.size
@@ -1575,13 +1634,13 @@ EOS
     test 'complex inline passthrough macro' do
       text_to_escape = %q{[(] <'basic form'> <'logical operator'> <'basic form'> [)]}
       para = block_from_string %($$#{text_to_escape}$$)
-      result = para.extract_passthroughs(para.source)
+      para.extract_passthroughs(para.source)
       assert_equal 1, para.passthroughs.size
       assert_equal text_to_escape, para.passthroughs[0][:text]
 
       text_to_escape_escaped = %q{[(\] <'basic form'> <'logical operator'> <'basic form'> [)\]}
       para = block_from_string %(pass:specialcharacters[#{text_to_escape_escaped}])
-      result = para.extract_passthroughs(para.source)
+      para.extract_passthroughs(para.source)
       assert_equal 1, para.passthroughs.size
       assert_equal text_to_escape, para.passthroughs[0][:text]
     end
@@ -1610,18 +1669,34 @@ EOS
         assert_equal '\$a &lt; b\$', para.content
       end
 
-      # NOTE this test doesn't work once AsciiMath has been loaded
-      #test 'should not perform specialcharacters subs on asciimath macro content in docbook backend by default' do
-      #  input = 'asciimath:[a < b]'
-      #  para = block_from_string input, :backend => :docbook
-      #  para.document.converter.instance_variable_set :@asciimath_available, false
-      #  assert_equal '<inlineequation><mathphrase><![CDATA[a < b]]></mathphrase></inlineequation>', para.content
-      #end
+      test 'should convert contents of asciimath macro to MathML in DocBook output if asciimath gem is available' do
+        asciimath_available = !(Asciidoctor::Helpers.require_library 'asciimath', true, :ignore).nil?
+        input = 'asciimath:[a < b]'
+        expected = '<inlineequation><mml:math xmlns:mml="http://www.w3.org/1998/Math/MathML"><mml:mi>a</mml:mi><mml:mo>&#x003C;</mml:mo><mml:mi>b</mml:mi></mml:math></inlineequation>'
+        using_memory_logger do |logger|
+          para = block_from_string input, :backend => :docbook
+          actual = para.content
+          if asciimath_available
+            assert_equal expected, actual
+            assert_equal :loaded, para.document.converter.instance_variable_get(:@asciimath)
+          else
+            assert_message logger, :WARN, 'optional gem \'asciimath\' is not installed. Functionality disabled.'
+            assert_equal :unavailable, para.document.converter.instance_variable_get(:@asciimath)
+          end
+        end
+      end
 
-      test 'should convert asciimath macro content to MathML when asciimath gem is available' do
+      test 'should not perform specialcharacters subs on asciimath macro content in Docbook output if asciimath gem not available' do
+        asciimath_available = !(Asciidoctor::Helpers.require_library 'asciimath', true, :ignore).nil?
         input = 'asciimath:[a < b]'
         para = block_from_string input, :backend => :docbook
-        assert_equal '<inlineequation><mml:math xmlns:mml="http://www.w3.org/1998/Math/MathML"><mml:mi>a</mml:mi><mml:mo>&#x003C;</mml:mo><mml:mi>b</mml:mi></mml:math></inlineequation>', para.content
+        para.document.converter.instance_variable_set :@asciimath, :unavailable
+        if asciimath_available
+          old_asciimath = ::AsciiMath
+          Object.send :remove_const, 'AsciiMath'
+        end
+        assert_equal '<inlineequation><mathphrase><![CDATA[a < b]]></mathphrase></inlineequation>', para.content
+        ::AsciiMath = old_asciimath if asciimath_available
       end
 
       test 'should honor explicit subslist on asciimath macro' do
@@ -1674,17 +1749,36 @@ EOS
         assert_equal 'the text <code>asciimath:[x = y]</code> should be passed through as <code>literal</code> text', para.content
       end
 
+      test 'should not process an escaped passthrough macro inside a monospaced phrase' do
+        input = 'use the `\pass:c[]` macro'
+        para = block_from_string input
+        assert_equal 'use the <code>pass:c[]</code> macro', para.content
+      end
+
+      test 'should not process an escaped passthrough macro inside a monospaced phrase with attributes' do
+        input = 'use the [syntax]`\pass:c[]` macro'
+        para = block_from_string input
+        assert_equal 'use the <code class="syntax">pass:c[]</code> macro', para.content
+      end
+
+      test 'should honor an escaped single plus passthrough inside a monospaced phrase' do
+        input = 'use `\+{author}+` to show an attribute reference'
+        para = block_from_string input
+        assert_equal 'use <code>+{author}+</code> to show an attribute reference', para.content
+      end
+
       test 'should not recognize stem macro with no content' do
         input = 'stem:[]'
         para = block_from_string input
         assert_equal input, para.content
       end
 
-      test 'should passthrough text in stem macro and surround with AsciiMath delimiters if stem attribute != latexmath' do
+      test 'should passthrough text in stem macro and surround with AsciiMath delimiters if stem attribute is asciimath, empty, or not set' do
         [
           {},
           {'stem' => ''},
-          {'stem' => 'asciimath'}
+          {'stem' => 'asciimath'},
+          {'stem' => 'bogus'}
         ].each do |attributes|
           input = 'stem:[x/x={(1,if x!=0),(text{undefined},if x=0):}]'
           para = block_from_string input, :attributes => attributes
@@ -1692,10 +1786,16 @@ EOS
         end
       end
 
-      test 'should passthrough text in stem macro and surround with LaTeX math delimiters if stem attribute = latexmath' do
-        input = 'stem:[C = \alpha + \beta Y^{\gamma} + \epsilon]'
-        para = block_from_string input, :attributes => {'stem' => 'latexmath'}
-        assert_equal '\(C = \alpha + \beta Y^{\gamma} + \epsilon\)', para.content
+      test 'should passthrough text in stem macro and surround with LaTeX math delimiters if stem attribute is latexmath, latex, or tex' do
+        [
+          {'stem' => 'latexmath'},
+          {'stem' => 'latex'},
+          {'stem' => 'tex'}
+        ].each do |attributes|
+          input = 'stem:[C = \alpha + \beta Y^{\gamma} + \epsilon]'
+          para = block_from_string input, :attributes => attributes
+          assert_equal '\(C = \alpha + \beta Y^{\gamma} + \epsilon\)', para.content
+        end
       end
 
       test 'should apply substitutions specified on stem macro' do
@@ -1804,25 +1904,25 @@ foo&#8201;&#8212;&#8201;'
   context 'Post replacements' do
     test 'line break inserted after line with line break character' do
       para = block_from_string("First line +\nSecond line")
-      result = para.apply_subs(para.lines, :post_replacements, true)
+      result = para.apply_subs para.lines, (para.expand_subs :post_replacements)
       assert_equal 'First line<br>', result.first
     end
 
     test 'line break inserted after line wrap with hardbreaks enabled' do
       para = block_from_string("First line\nSecond line", :attributes => {'hardbreaks' => ''})
-      result = para.apply_subs(para.lines, :post_replacements, true)
+      result = para.apply_subs para.lines, (para.expand_subs :post_replacements)
       assert_equal 'First line<br>', result.first
     end
 
     test 'line break character stripped from end of line with hardbreaks enabled' do
       para = block_from_string("First line +\nSecond line", :attributes => {'hardbreaks' => ''})
-      result = para.apply_subs(para.lines, :post_replacements, true)
+      result = para.apply_subs para.lines, (para.expand_subs :post_replacements)
       assert_equal 'First line<br>', result.first
     end
 
     test 'line break not inserted for single line with hardbreaks enabled' do
       para = block_from_string('First line', :attributes => {'hardbreaks' => ''})
-      result = para.apply_subs(para.lines, :post_replacements, true)
+      result = para.apply_subs para.lines, (para.expand_subs :post_replacements)
       assert_equal 'First line', result.first
     end
   end

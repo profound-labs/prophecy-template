@@ -37,7 +37,7 @@ module Asciidoctor
         # the registry of converters is initialized using a normal Hash.
         #
         # initialize_singleton - A Boolean to indicate whether the singleton should
-        #                        be initialize if it has not already been created.
+        #                        be initialized if it has not already been created.
         #                        If false, and a singleton has not been previously
         #                        initialized, a fresh instance is returned.
         #
@@ -46,10 +46,12 @@ module Asciidoctor
           return @__default__ || new unless initialize_singleton
           # FIXME this assignment is not thread_safe, may need to use a ::Threadsafe helper here
           @__default__ ||= begin
+            # NOTE .to_s hides require from Opal
             require 'thread_safe'.to_s unless defined? ::ThreadSafe
             new ::ThreadSafe::Cache.new
           rescue ::LoadError
-            warn 'asciidoctor: WARNING: gem \'thread_safe\' is not installed. This gem is recommended when registering custom converters.'
+            include Logging unless include? Logging
+            logger.warn 'gem \'thread_safe\' is not installed. This gem is recommended when registering custom converters.'
             new
           end
         end
@@ -183,41 +185,37 @@ module Asciidoctor
       # Returns the [Converter] object
       def create backend, opts = {}
         if (converter = resolve backend)
-          return ::Class === converter ? (converter.new backend, opts) : converter
-        end
-
-        base_converter = case backend
-        when 'html5'
-          unless defined? ::Asciidoctor::Converter::Html5Converter
-            require 'asciidoctor/converter/html5'.to_s
+          base_converter = ::Class === converter ? (converter.new backend, opts) : converter
+          return base_converter unless Converter::BackendInfo === base_converter && base_converter.supports_templates?
+        else
+          case backend
+          when 'html5'
+            # NOTE .to_s hides require from Opal
+            require 'asciidoctor/converter/html5'.to_s unless defined? ::Asciidoctor::Converter::Html5Converter
+            base_converter = Html5Converter.new backend, opts
+          when 'docbook5'
+            # NOTE .to_s hides require from Opal
+            require 'asciidoctor/converter/docbook5'.to_s unless defined? ::Asciidoctor::Converter::DocBook5Converter
+            base_converter = DocBook5Converter.new backend, opts
+          when 'docbook45'
+            # NOTE .to_s hides require from Opal
+            require 'asciidoctor/converter/docbook45'.to_s unless defined? ::Asciidoctor::Converter::DocBook45Converter
+            base_converter = DocBook45Converter.new backend, opts
+          when 'manpage'
+            # NOTE .to_s hides require from Opal
+            require 'asciidoctor/converter/manpage'.to_s unless defined? ::Asciidoctor::Converter::ManPageConverter
+            base_converter = ManPageConverter.new backend, opts
           end
-          Html5Converter.new backend, opts
-        when 'docbook5'
-          unless defined? ::Asciidoctor::Converter::DocBook5Converter
-            require 'asciidoctor/converter/docbook5'.to_s
-          end
-          DocBook5Converter.new backend, opts
-        when 'docbook45'
-          unless defined? ::Asciidoctor::Converter::DocBook45Converter
-            require 'asciidoctor/converter/docbook45'.to_s
-          end
-          DocBook45Converter.new backend, opts
-        when 'manpage'
-          unless defined? ::Asciidoctor::Converter::ManPageConverter
-            require 'asciidoctor/converter/manpage'.to_s
-          end
-          ManPageConverter.new backend, opts
         end
 
         return base_converter unless opts.key? :template_dirs
 
-        unless defined? ::Asciidoctor::Converter::TemplateConverter
-          require 'asciidoctor/converter/template'.to_s
-        end
-        unless defined? ::Asciidoctor::Converter::CompositeConverter
-          require 'asciidoctor/converter/composite'.to_s
-        end
+        # NOTE .to_s hides require from Opal
+        require 'asciidoctor/converter/template'.to_s unless defined? ::Asciidoctor::Converter::TemplateConverter
         template_converter = TemplateConverter.new backend, opts[:template_dirs], opts
+
+        # NOTE .to_s hides require from Opal
+        require 'asciidoctor/converter/composite'.to_s unless defined? ::Asciidoctor::Converter::CompositeConverter
         # QUESTION should we omit the composite converter if built_in_converter is nil?
         CompositeConverter.new backend, template_converter, base_converter
       end

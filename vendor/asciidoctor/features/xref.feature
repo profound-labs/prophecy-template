@@ -263,6 +263,147 @@ Feature: Cross References
     |to find a complete list of features.
     """
 
+  Scenario: Create a full cross reference to a numbered part
+  Given the AsciiDoc source
+    """
+    :doctype: book
+    :sectnums:
+    :partnums:
+    :xrefstyle: full
+
+    [preface]
+    = Preface
+
+    See <<p1>> for an introduction to the language.
+
+    [#p1]
+    = Language
+
+    == Syntax
+
+    This chapter covers the syntax.
+    """
+  When it is converted to html
+  Then the result should contain the HTML structure
+    """
+    |See
+    a<> href='#p1' Part I, &#8220;Language&#8221;
+    |for an introduction to the language.
+    """
+
+  Scenario: Create a short cross reference to a numbered part
+  Given the AsciiDoc source
+    """
+    :doctype: book
+    :sectnums:
+    :partnums:
+    :xrefstyle: short
+
+    [preface]
+    = Preface
+
+    See <<p1>> for an introduction to the language.
+
+    [#p1]
+    = Language
+
+    == Syntax
+
+    This chapter covers the syntax.
+    """
+  When it is converted to html
+  Then the result should contain the HTML structure
+    """
+    |See
+    a<> href='#p1' Part I
+    |for an introduction to the language.
+    """
+
+  Scenario: Create a basic cross reference to a numbered part
+  Given the AsciiDoc source
+    """
+    :doctype: book
+    :sectnums:
+    :partnums:
+    :xrefstyle: basic
+
+    [preface]
+    = Preface
+
+    See <<p1>> for an introduction to the language.
+
+    [#p1]
+    = Language
+
+    == Syntax
+
+    This chapter covers the syntax.
+    """
+  When it is converted to html
+  Then the result should contain the HTML structure
+    """
+    |See
+    a<> href='#p1' Language
+    |for an introduction to the language.
+    """
+
+  Scenario: Create a basic cross reference to an unnumbered part
+  Given the AsciiDoc source
+    """
+    :doctype: book
+    :sectnums:
+    :xrefstyle: full
+
+    [preface]
+    = Preface
+
+    See <<p1>> for an introduction to the language.
+
+    [#p1]
+    = Language
+
+    == Syntax
+
+    This chapter covers the syntax.
+    """
+  When it is converted to html
+  Then the result should contain the HTML structure
+    """
+    |See
+    a<> href='#p1' Language
+    |for an introduction to the language.
+    """
+
+  @wip
+  Scenario: Create a cross reference to a part using a custom part reference signifier
+  Given the AsciiDoc source
+    """
+    :doctype: book
+    :sectnums:
+    :partnums:
+    :xrefstyle: full
+    :part-refsig: P
+
+    [preface]
+    = Preface
+
+    See <<p1>> for an introduction to the language.
+
+    [#p1]
+    = Language
+
+    == Syntax
+
+    This chapter covers the syntax.
+    """
+  When it is converted to html
+  Then the result should contain the HTML structure
+    """
+    |See
+    a<> href='#p1' P I, &#8220;Language&#8221;
+    |for an introduction to the language.
+    """
+
   Scenario: Create a full cross reference to a numbered appendix
   Given the AsciiDoc source
     """
@@ -577,13 +718,13 @@ Feature: Cross References
   When it is converted to html
   Then the result should match the HTML structure
     """
-    table.tableblock.frame-all.grid-all.spread
+    table.tableblock.frame-all.grid-all.stretch
       colgroup
         col style='width: 100%;'
       tbody
         tr
           td.tableblock.halign-left.valign-top
-            div
+            div.content
               .paragraph: p
                 |See
                 a< href='#_install' Install
@@ -593,7 +734,7 @@ Feature: Cross References
         .paragraph: p Instructions go here.
     """
 
-    Scenario: Create a cross reference using the target section title
+    Scenario: Create a cross reference using the title of the target section
     Given the AsciiDoc source
       """
       == Section One
@@ -617,7 +758,7 @@ Feature: Cross References
           a< href='#_section_one' Section One
       """
 
-    Scenario: Create a natural cross reference using the reftext of the target section
+    Scenario: Create a cross reference using the reftext of the target section
     Given the AsciiDoc source
       """
       [reftext="the first section"]
@@ -654,7 +795,7 @@ Feature: Cross References
           xref< linkend='_section_one'/
       """
 
-    Scenario: Create a cross reference using the formatted target title
+    Scenario: Create a cross reference using the formatted title of the target section
     Given the AsciiDoc source
       """
       == Section *One*
@@ -669,12 +810,230 @@ Feature: Cross References
     Then the result should match the HTML structure
       """
       .sect1
-        h2#_section_strong_one_strong
+        h2#_section_one
           |Section <strong>One</strong>
         .sectionbody: .paragraph: p content
       .sect1
         h2#_section_two Section Two
         .sectionbody: .paragraph: p
           |refer to
-          a< href='#_section_strong_one_strong' Section <strong>One</strong>
+          a< href='#_section_one' Section <strong>One</strong>
+      """
+
+    Scenario: Does not process a natural cross reference in compat mode
+    Given the AsciiDoc source
+      """
+      :compat-mode:
+
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to <<Section One>>
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#Section One' [Section One]
+      """
+
+    Scenario: Parses text of xref macro as attributes if attribute signature found
+    Given the AsciiDoc source
+      """
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to xref:_section_one[role=next]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_section_one' class='next' Section One
+      """
+
+    Scenario: Does not parse text of xref macro as attribute if attribute signature not found
+    Given the AsciiDoc source
+      """
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to xref:_section_one[One, Section One]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_section_one' One, Section One
+      """
+
+    Scenario: Uses whole text of xref macro as link text if attribute signature found and text is enclosed in double quotes
+    Given the AsciiDoc source
+      """
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to xref:_section_one["Section One == Starting Point"]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_section_one'
+            |Section One == Starting Point
+      """
+
+    Scenario: Does not parse text of xref macro as text if enclosed in double quotes but attribute signature not found
+    Given the AsciiDoc source
+      """
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to xref:_section_one["The Premier Section"]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_section_one' "The Premier Section"
+      """
+
+    Scenario: Can escape double quotes in text of xref macro using backslashes when text is parsed as attributes
+    Given the AsciiDoc source
+      """
+      == Section One
+
+      content
+
+      == Section Two
+
+      refer to xref:_section_one["\"The Premier Section\"",role=spotlight]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_section_one
+          |Section One
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_section_two Section Two
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_section_one' class='spotlight' "The Premier Section"
+      """
+
+    Scenario: Override xrefstyle for a given part of the document
+    Given the AsciiDoc source
+      """
+      :xrefstyle: full
+      :doctype: book
+      :sectnums:
+
+      == Foo
+
+      refer to <<#_bar>>
+
+      == Bar
+      :xrefstyle: short
+
+      refer to xref:#_foo[xrefstyle=short]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_foo 1. Foo
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_bar' Chapter 2, <em>Bar</em>
+      .sect1
+        h2#_bar 2. Bar
+        .sectionbody: .paragraph: p
+          |refer to
+          a< href='#_foo' Chapter 1
+      """
+
+    Scenario: Override xrefstyle for a specific reference by assigning the xrefstyle attribute on the xref macro
+    Given the AsciiDoc source
+      """
+      :xrefstyle: full
+      :doctype: book
+      :sectnums:
+
+      == Foo
+
+      content
+
+      == Bar
+
+      refer to <<#_foo>>
+
+      refer to xref:#_foo[xrefstyle=short]
+      """
+    When it is converted to html
+    Then the result should match the HTML structure
+      """
+      .sect1
+        h2#_foo 1. Foo
+        .sectionbody: .paragraph: p content
+      .sect1
+        h2#_bar 2. Bar
+        .sectionbody
+          .paragraph: p
+            |refer to
+            a< href='#_foo' Chapter 1, <em>Foo</em>
+          .paragraph: p
+            |refer to
+            a< href='#_foo' Chapter 1
       """

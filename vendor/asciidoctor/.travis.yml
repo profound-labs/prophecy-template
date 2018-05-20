@@ -5,7 +5,8 @@ git:
   depth: 2
 language: ruby
 rvm:
-- &release_ruby 2.4.2
+- &release_ruby 2.5.0
+- 2.4.2
 - 2.3.5
 - 2.2.8
 - 2.1.10
@@ -20,9 +21,6 @@ env:
   global:
   # use system libraries to speed up installation of nokogiri
   - NOKOGIRI_USE_SYSTEM_LIBRARIES=true
-before_install:
-- gem update bundler
-- gem cleanup bundler
 script: bundle exec rake coverage test:all
 after_success: bundle exec rake build:dependents
 #notifications:

@@ -31,6 +31,24 @@ context 'Options' do
     assert_includes output, '.TH "ASCIIDOCTOR"'
   end
 
+  test 'should print message and return error code 1 when manpage is not found' do
+    old_manpage_path = ENV['ASCIIDOCTOR_MANPAGE_PATH']
+    begin
+      ENV['ASCIIDOCTOR_MANPAGE_PATH'] = (manpage_path = fixture_path 'no-such-file.1')
+      redirect_streams do |out, stderr|
+        exitval = Asciidoctor::Cli::Options.parse!(%w(-h manpage))
+        assert_equal 1, exitval
+        assert_equal %(asciidoctor: FAILED: manual page not found: #{manpage_path}), stderr.string.chomp
+      end
+    ensure
+      if old_manpage_path
+        ENV['ASCIIDOCTOR_MANPAGE_PATH'] = old_manpage_path
+      else
+        ENV.delete 'ASCIIDOCTOR_MANPAGE_PATH'
+      end
+    end
+  end
+
   test 'should return error code 1 when invalid option present' do
     redirect_streams do |stdout, stderr|
       exitval = Asciidoctor::Cli::Options.parse!(%w(--foobar))
@@ -182,6 +200,33 @@ context 'Options' do
     ensure
       ($LOAD_PATH.size - old_load_path.size).times { $LOAD_PATH.shift }
     end
+  end
+
+  test 'should set failure level to FATAL by default' do
+    options = Asciidoctor::Cli::Options.parse! %W(test/fixtures/sample.asciidoc)
+    assert_equal ::Logger::Severity::FATAL, options[:failure_level]
+  end
+
+  test 'should allow failure level to be set to WARN' do
+    %w(w warn WARN warning WARNING).each do |val|
+      options = Asciidoctor::Cli::Options.parse!(%W(--failure-level=#{val} test/fixtures/sample.asciidoc))
+      assert_equal ::Logger::Severity::WARN, options[:failure_level]
+    end
+  end
+
+  test 'should allow failure level to be set to ERROR' do
+    %w(e err ERR error ERROR).each do |val|
+      options = Asciidoctor::Cli::Options.parse!(%W(--failure-level=#{val} test/fixtures/sample.asciidoc))
+      assert_equal ::Logger::Severity::ERROR, options[:failure_level]
+    end
+  end
+
+  test 'should not allow failure level to be set to unknown value' do
+    exit_code, messages = redirect_streams do |_, err|
+      [(Asciidoctor::Cli::Options.parse! %W(--failure-level=foobar test/fixtures/sample.asciidoc)), err.string]
+    end
+    assert_equal 1, exit_code
+    assert_includes messages, 'invalid argument: --failure-level=foobar'
   end
 
   test 'should set verbose to 2 when -v flag is specified' do

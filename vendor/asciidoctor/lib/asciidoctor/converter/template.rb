@@ -39,8 +39,6 @@ module Asciidoctor
       @caches = { :scans => ::ThreadSafe::Cache.new, :templates => ::ThreadSafe::Cache.new }
     rescue ::LoadError
       @caches = { :scans => {}, :templates => {} }
-      # FIXME perhaps only warn if the cache option is enabled (meaning not disabled)?
-      warn 'asciidoctor: WARNING: gem \'thread_safe\' is not installed. This gem is recommended when using custom backend templates.'
     end
 
     def self.caches
@@ -77,6 +75,7 @@ module Asciidoctor
       end
       case opts[:template_cache]
       when true
+        logger.warn 'gem \'thread_safe\' is not installed. This gem is recommended when using the built-in template cache.' unless defined? ::ThreadSafe
         @caches = self.class.caches
       when ::Hash
         @caches = opts[:template_cache]
@@ -162,7 +161,7 @@ module Asciidoctor
         end
       else
         metaclass.send :define_method, name do |node|
-          (template.render node).chomp
+          (template.render node).rstrip
         end
       end
     end
@@ -194,7 +193,7 @@ module Asciidoctor
       if template_name == 'document'
         (template.render node, opts).strip
       else
-        (template.render node, opts).chomp
+        (template.render node, opts).rstrip
       end
     end
 

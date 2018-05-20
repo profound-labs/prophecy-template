@@ -109,10 +109,8 @@ class Block < AbstractBlock
     when :compound
       super
     when :simple
-      apply_subs @lines * LF, @subs
+      apply_subs((@lines.join LF), @subs)
     when :verbatim, :raw
-      #((apply_subs @lines * LF, @subs).sub StripLineWiseRx, '\1')
-
       # QUESTION could we use strip here instead of popping empty lines?
       # maybe apply_subs can know how to strip whitespace?
       result = apply_subs @lines, @subs
@@ -121,20 +119,20 @@ class Block < AbstractBlock
       else
         result.shift while (first = result[0]) && first.rstrip.empty?
         result.pop while (last = result[-1]) && last.rstrip.empty?
-        result * LF
+        result.join LF
       end
     else
-      warn %(Unknown content model '#{@content_model}' for block: #{to_s}) unless @content_model == :empty
+      logger.warn %(Unknown content model '#{@content_model}' for block: #{to_s}) unless @content_model == :empty
       nil
     end
   end
 
   # Public: Returns the preprocessed source of this block
   #
-  # Returns the a String containing the lines joined together or nil if there
-  # are no lines
+  # Returns the a String containing the lines joined together or empty string
+  # if there are no lines
   def source
-    @lines * LF
+    @lines.join LF
   end
 
   def to_s

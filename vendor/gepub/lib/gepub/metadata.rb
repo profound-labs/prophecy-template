@@ -109,7 +109,7 @@ module GEPUB
       @oldstyle_meta = []
     end
     
-    CONTENT_NODE_LIST = ['identifier', 'title', 'language', 'contributor', 'creator', 'coverage', 'date', 'description', 'format', 'publisher', 'relation', 'rights', 'source', 'subject', 'type'].each {
+    CONTENT_NODE_LIST = ['identifier', 'title', 'language', 'contributor', 'creator', 'coverage', 'date','description','format','publisher','relation','rights','source','subject','type'].each {
       |node|
       define_method(node + '_list') { @content_nodes[node].dup.sort_as_meta }
       define_method(node + '_clear') {
@@ -118,6 +118,8 @@ module GEPUB
           @content_nodes[node] = []
         end
       }
+
+      next if node == 'title'
 
       define_method(node, ->(content=UNASSIGNED, id=nil) {
                       if unassigned?(content)
@@ -128,11 +130,6 @@ module GEPUB
                       end
                     })
 
-      define_method('add_' + node) {
-        |content, id|
-        add_metadata(node, content, id)
-      }
-      
       define_method('set_' + node) {
         |content, id|
         warn "obsolete : set_#{node}. use #{node} instead."
@@ -143,7 +140,18 @@ module GEPUB
       define_method(node+'=') {
         |content|
         send(node + "_clear")
-        add_metadata(node, content, nil)
+        if node == 'date'
+          add_date(content, nil)
+        else
+          add_metadata(node, content, nil)
+        end
+      }
+
+      next if ["identifier", "date", "creator", "contributor"].include?(node)
+
+      define_method('add_' + node) {
+        |content, id|
+        add_metadata(node, content, id)
       }
     }
 

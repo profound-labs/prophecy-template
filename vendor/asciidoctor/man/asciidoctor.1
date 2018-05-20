@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: asciidoctor
 .\"    Author: Dan Allen, Sarah White, Ryan Waldron
-.\" Generator: Asciidoctor 1.5.7.dev
-.\"      Date: 2017-09-22
+.\" Generator: Asciidoctor 1.5.8.dev
+.\"      Date: 2018-05-19
 .\"    Manual: Asciidoctor Manual
-.\"    Source: Asciidoctor 1.5.6.1
+.\"    Source: Asciidoctor 1.5.7
 .\"  Language: English
 .\"
-.TH "ASCIIDOCTOR" "1" "2017-09-22" "Asciidoctor 1.5.6.1" "Asciidoctor Manual"
+.TH "ASCIIDOCTOR" "1" "2018-05-19" "Asciidoctor 1.5.7" "Asciidoctor Manual"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -50,7 +50,7 @@ When combined with the safe mode setting, can be used to chroot the execution of
 \fB\-S, \-\-safe\-mode\fP=\fISAFE_MODE\fP
 .RS 4
 Set safe mode level: \fIunsafe\fP, \fIsafe\fP, \fIserver\fP or \fIsecure\fP.
-Disables potentially dangerous macros in source files, such as \f[CR]include::[]\fP.
+Disables potentially dangerous macros in source files, such as \f(CRinclude::[]\fP.
 If not set, the safe mode level defaults to \fIunsafe\fP when Asciidoctor is invoked using this script.
 .RE
 .sp
@@ -92,13 +92,7 @@ The \fImanpage\fP document type enables parsing of metadata necessary to produce
 The \fIinline\fP document type allows the content of a single paragraph to be formatted and returned without wrapping it in a containing element.
 Defaults to \fIarticle\fP.
 .RE
-.SS "Rendering Control"
-.sp
-\fB\-C, \-\-compact\fP
-.RS 4
-Compact the output by removing blank lines.
-(No longer in use).
-.RE
+.SS "Document Conversion"
 .sp
 \fB\-D, \-\-destination\-dir\fP=\fIDIR\fP
 .RS 4
@@ -131,7 +125,7 @@ This option may be specified more than once.
 \fB\-n, \-\-section\-numbers\fP
 .RS 4
 Auto\-number section titles.
-Synonym for \fB\-\-attribute numbered\fP.
+Synonym for \fB\-\-attribute sectnums\fP.
 .RE
 .sp
 \fB\-o, \-\-out\-file\fP=\fIOUT_FILE\fP
@@ -159,7 +153,8 @@ This option may be specified more than once.
 .sp
 \fB\-s, \-\-no\-header\-footer\fP
 .RS 4
-Suppress the document header and footer in the output.
+Output an embeddable document, which excludes the header, the footer, and everything outside the body of the document.
+This option is useful for producing documents that can be inserted into an external template.
 .RE
 .sp
 \fB\-T, \-\-template\-dir\fP=\fIDIR\fP
@@ -174,6 +169,12 @@ This option may be specified more than once.
 Matching templates found in subsequent directories override ones previously discovered.
 .RE
 .SS "Processing Information"
+.sp
+\fB\-\-failure\-level\fP=\fILEVEL\fP
+.RS 4
+The minimum logging level that triggers a non\-zero exit code (failure).
+If this option is not set (default: FATAL), the program exits with a status code zero even if warnings or errors have been logged.
+.RE
 .sp
 \fB\-q, \-\-quiet\fP
 .RS 4
@@ -208,7 +209,7 @@ Dump the Asciidoctor man page (in troff/groff format) if \fITOPIC\fP is \fImanpa
 .RS 4
 Print program version number.
 .sp
-\f[CR]\-v\fP can also be used if no other flags or arguments are present.
+\f(CR\-v\fP can also be used if no other flags or arguments are present.
 .RE
 .SH "ENVIRONMENT"
 .sp
@@ -240,7 +241,7 @@ Refer to the \fBAsciidoctor\fP issue tracker at \c
 .SH "RESOURCES"
 .sp
 \fBProject web site:\fP \c
-.URL "http://asciidoctor.org" "" ""
+.URL "https://asciidoctor.org" "" ""
 .sp
 \fBGit source repository on GitHub:\fP \c
 .URL "https://github.com/asciidoctor/asciidoctor" "" ""
@@ -252,11 +253,12 @@ Refer to the \fBAsciidoctor\fP issue tracker at \c
 .URL "http://discuss.asciidoctor.org" "" ""
 .SH "COPYING"
 .sp
-Copyright (C) 2012\-2017 Dan Allen, Ryan Waldron and the Asciidoctor Project.
+Copyright (C) 2012\-2018 Dan Allen, Ryan Waldron and the Asciidoctor Project.
 Free use of this software is granted under the terms of the MIT License.
-.SH "AUTHOR(S)"
+.SH "AUTHORS"
 .sp
-\fBDan Allen, Sarah White, Ryan Waldron\fP
-.RS 4
-Author(s).
-.RE
+Dan Allen
+.sp
+Sarah White
+.sp
+Ryan Waldron

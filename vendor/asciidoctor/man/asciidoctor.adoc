@@ -2,7 +2,7 @@
 Dan Allen; Sarah White; Ryan Waldron
 :doctype: manpage
 :man manual: Asciidoctor Manual
-:man source: Asciidoctor 1.5.6.1
+:man source: Asciidoctor 1.5.7
 :page-layout: base
 
 == NAME
@@ -65,11 +65,7 @@ This option may be specified more than once.
   The _inline_ document type allows the content of a single paragraph to be formatted and returned without wrapping it in a containing element.
   Defaults to _article_.
 
-=== Rendering Control
-
-*-C, --compact*::
-  Compact the output by removing blank lines.
-  (No longer in use).
+=== Document Conversion
 
 *-D, --destination-dir*=_DIR_::
   Destination output directory.
@@ -93,7 +89,7 @@ This option may be specified more than once.
 
 *-n, --section-numbers*::
   Auto-number section titles.
-  Synonym for *--attribute numbered*.
+  Synonym for *--attribute sectnums*.
 
 *-o, --out-file*=_OUT_FILE_::
   Write output to file _OUT_FILE_.
@@ -113,7 +109,8 @@ This option may be specified more than once.
   This option may be specified more than once.
 
 *-s, --no-header-footer*::
-  Suppress the document header and footer in the output.
+  Output an embeddable document, which excludes the header, the footer, and everything outside the body of the document.
+  This option is useful for producing documents that can be inserted into an external template.
 
 *-T, --template-dir*=_DIR_::
   A directory containing custom converter templates that override one or more templates from the built-in set.
@@ -126,6 +123,10 @@ This option may be specified more than once.
 Matching templates found in subsequent directories override ones previously discovered.
 
 === Processing Information
+
+*--failure-level*=_LEVEL_::
+  The minimum logging level that triggers a non-zero exit code (failure).
+  If this option is not set (default: FATAL), the program exits with a status code zero even if warnings or errors have been logged.
 
 *-q, --quiet*::
   Silence warnings.
@@ -178,7 +179,7 @@ Refer to the *Asciidoctor* issue tracker at https://github.com/asciidoctor/ascii
 
 == RESOURCES
 
-*Project web site:* http://asciidoctor.org
+*Project web site:* https://asciidoctor.org
 
 *Git source repository on GitHub:* https://github.com/asciidoctor/asciidoctor
 
@@ -188,5 +189,5 @@ Refer to the *Asciidoctor* issue tracker at https://github.com/asciidoctor/ascii
 
 == COPYING
 
-Copyright \(C) 2012-2017 Dan Allen, Ryan Waldron and the Asciidoctor Project.
+Copyright \(C) 2012-2018 Dan Allen, Ryan Waldron and the Asciidoctor Project.
 Free use of this software is granted under the terms of the MIT License.

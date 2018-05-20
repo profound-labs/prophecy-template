@@ -336,18 +336,17 @@ content
 
     test 'should substitute attributes in docinfo files by default' do
       sample_input_path = fixture_path 'subs.adoc'
-      output, warnings = redirect_streams do |_, err|
+      using_memory_logger do |logger|
         output = Asciidoctor.convert_file sample_input_path,
             :to_file => false,
             :header_footer => true,
             :safe => :server,
             :attributes => { 'docinfo' => '', 'bootstrap-version' => nil, 'linkcss' => '', 'attribute-missing' => 'drop-line' }
-        [output, err.string]
+        refute_empty output
+        assert_css 'script', output, 0
+        assert_xpath %(//meta[@name="copyright"][@content="(C) OpenDevise"]), output, 1
+        assert_message logger, :WARN, 'dropping line containing reference to missing attribute: bootstrap-version'
       end
-      refute_empty output
-      assert_css 'script', output, 0
-      assert_xpath %(//meta[@name="copyright"][@content="(C) OpenDevise"]), output, 1
-      assert_includes warnings, 'dropping line containing reference to missing attribute'
     end
 
     test 'should apply explicit substitutions to docinfo files' do
@@ -422,9 +421,9 @@ content
         '/img/favicon.png' => %w(/img/favicon.png image/png)
       }.each {|val, (href, type)|
         result = render_string %(= Untitled), :attributes => { 'favicon' => val }
-        assert_css 'link[rel="shortcut icon"]', result, 1
-        assert_css %(link[rel="shortcut icon"][href="#{href}"]), result, 1
-        assert_css %(link[rel="shortcut icon"][type="#{type}"]), result, 1
+        assert_css 'link[rel="icon"]', result, 1
+        assert_css %(link[rel="icon"][href="#{href}"]), result, 1
+        assert_css %(link[rel="icon"][type="#{type}"]), result, 1
       }
     end
   end
@@ -590,7 +589,25 @@ Block content
      assert doc.has_header?
      assert_equal 'Document Title', doc.header.title
      assert_equal 'Document Title', doc.first_section.title
-     assert_xpath '//*[@id="preamble"]//p[text()="Document Title"]', doc.render, 1
+     assert_xpath '//*[@id="preamble"]//p[text()="Document Title"]', doc.convert, 1
+    end
+
+    test 'document with blank title attribute entry overrides doctitle' do
+     input = <<-EOS
+= Document Title
+:title:
+
+{doctitle}
+
+== First Section
+     EOS
+     doc = document_from_string input
+     assert_equal '', doc.doctitle
+     assert_equal '', doc.title
+     assert doc.has_header?
+     assert_equal 'Document Title', doc.header.title
+     assert_equal 'Document Title', doc.first_section.title
+     assert_xpath '//*[@id="preamble"]//p[text()="Document Title"]', doc.convert, 1
     end
 
     test 'document with title attribute entry overrides doctitle attribute entry' do
@@ -610,7 +627,7 @@ Block content
      assert doc.has_header?
      assert_equal 'doctitle', doc.header.title
      assert_equal 'doctitle', doc.first_section.title
-     assert_xpath '//*[@id="preamble"]//p[text()="Document Title, doctitle"]', doc.render, 1
+     assert_xpath '//*[@id="preamble"]//p[text()="Document Title, doctitle"]', doc.convert, 1
     end
 
     test 'document with doctitle attribute entry overrides header title and doctitle' do
@@ -629,7 +646,7 @@ Block content
      assert doc.has_header?
      assert_equal 'Override', doc.header.title
      assert_equal 'Override', doc.first_section.title
-     assert_xpath '//*[@id="preamble"]//p[text()="Document Title, Override"]', doc.render, 1
+     assert_xpath '//*[@id="preamble"]//p[text()="Document Title, Override"]', doc.convert, 1
     end
 
     test 'doctitle attribute entry above header overrides header title and doctitle' do
@@ -647,7 +664,7 @@ Block content
      assert doc.has_header?
      assert_equal 'Override', doc.header.title
      assert_equal 'Override', doc.first_section.title
-     assert_xpath '//*[@id="preamble"]//p[text()="Override"]', doc.render, 1
+     assert_xpath '//*[@id="preamble"]//p[text()="Override"]', doc.convert, 1
     end
 
     test 'should recognize document title when preceded by blank lines' do
@@ -856,6 +873,18 @@ content
       assert_xpath '//meta[@name="author"][@content="Ze Product team"]', output, 1
     end
 
+    test 'should not double escape ampersand in author attribute' do
+      input = <<-EOS
+= Document Title
+R&D Lab
+
+{author}
+      EOS
+
+      output = render_string input
+      assert_includes output, 'R&amp;D Lab', 2
+    end
+
     test 'should include multiple authors in HTML output' do
       input = <<-EOS
 = Document Title
@@ -893,6 +922,19 @@ content
       assert_xpath '//articleinfo/authorgroup/author[2]/firstname[text() = "Junior"]', output, 1
     end
 
+    test 'with author defined by indexed attribute name' do
+      input = <<-EOS
+= Document Title
+:author_1: Doc Writer
+
+{author}
+      EOS
+
+      doc = document_from_string input
+      assert_equal 'Doc Writer', (doc.attr 'author')
+      assert_equal 'Doc Writer', (doc.attr 'author_1')
+    end
+
     test 'with authors defined using attribute entry to DocBook' do
       input = <<-EOS
 = Document Title
@@ -913,10 +955,50 @@ content
       assert_xpath '(//articleinfo/authorgroup/author)[2]/email[text() = "junior@asciidoc.org"]', output, 1
     end
 
+    test 'should populate copyright element in DocBook output if copyright attribute is defined' do
+      input = <<-EOS
+= Jet Bike
+:copyright: ACME, Inc.
+
+Essential for catching road runners.
+      EOS
+      output = render_string input, :backend => 'docbook5'
+      assert_xpath '/article/info/copyright', output, 1
+      assert_xpath '/article/info/copyright/holder[text()="ACME, Inc."]', output, 1
+    end
+
+    test 'should populate copyright element in DocBook output if copyright attribute is defined with year' do
+      input = <<-EOS
+= Jet Bike
+:copyright: ACME, Inc. 1956
+
+Essential for catching road runners.
+      EOS
+      output = render_string input, :backend => 'docbook5'
+      assert_xpath '/article/info/copyright', output, 1
+      assert_xpath '/article/info/copyright/holder[text()="ACME, Inc."]', output, 1
+      assert_xpath '/article/info/copyright/year', output, 1
+      assert_xpath '/article/info/copyright/year[text()="1956"]', output, 1
+    end
+
+    test 'should populate copyright element in DocBook output if copyright attribute is defined with year range' do
+      input = <<-EOS
+= Jet Bike
+:copyright: ACME, Inc. 1956-2018
+
+Essential for catching road runners.
+      EOS
+      output = render_string input, :backend => 'docbook5'
+      assert_xpath '/article/info/copyright', output, 1
+      assert_xpath '/article/info/copyright/holder[text()="ACME, Inc."]', output, 1
+      assert_xpath '/article/info/copyright/year', output, 1
+      assert_xpath '/article/info/copyright/year[text()="1956-2018"]', output, 1
+    end
+
     test 'with header footer' do
       doc = document_from_string "= Title\n\nparagraph"
       refute doc.attr?('embedded')
-      result = doc.render
+      result = doc.convert
       assert_xpath '/html', result, 1
       assert_xpath '//*[@id="header"]', result, 1
       assert_xpath '//*[@id="header"]/h1', result, 1
@@ -937,7 +1019,7 @@ content
 
     test 'can disable last updated in footer' do
       doc = document_from_string "= Document Title\n\npreamble", :attributes => {'last-update-label!' => ''}
-      result = doc.render
+      result = doc.convert
       assert_xpath '//*[@id="footer-text"]', result, 1
       assert_xpath '//*[@id="footer-text"][normalize-space(text())=""]', result, 1
     end
@@ -945,7 +1027,7 @@ content
     test 'no header footer' do
       doc = document_from_string "= Document Title\n\ncontent", :header_footer => false
       assert doc.attr?('embedded')
-      result = doc.render
+      result = doc.convert
       assert_xpath '/html', result, 0
       assert_xpath '/h1', result, 0
       assert_xpath '/*[@id="header"]', result, 0
@@ -1014,13 +1096,13 @@ finally a reference to the second footnote footnoteref:[note2].
       output = render_string input
       assert_css '#footnotes', output, 1
       assert_css '#footnotes .footnote', output, 2
-      assert_css '#footnotes .footnote#_footnote_1', output, 1
-      assert_xpath '//div[@id="footnotes"]/div[@id="_footnote_1"]/a[@href="#_footnoteref_1"][text()="1"]', output, 1
-      text = xmlnodes_at_xpath '//div[@id="footnotes"]/div[@id="_footnote_1"]/text()', output
+      assert_css '#footnotes .footnote#_footnotedef_1', output, 1
+      assert_xpath '//div[@id="footnotes"]/div[@id="_footnotedef_1"]/a[@href="#_footnoteref_1"][text()="1"]', output, 1
+      text = xmlnodes_at_xpath '//div[@id="footnotes"]/div[@id="_footnotedef_1"]/text()', output
       assert_equal '. An example footnote.', text.text.strip
-      assert_css '#footnotes .footnote#_footnote_2', output, 1
-      assert_xpath '//div[@id="footnotes"]/div[@id="_footnote_2"]/a[@href="#_footnoteref_2"][text()="2"]', output, 1
-      text = xmlnodes_at_xpath '//div[@id="footnotes"]/div[@id="_footnote_2"]/text()', output
+      assert_css '#footnotes .footnote#_footnotedef_2', output, 1
+      assert_xpath '//div[@id="footnotes"]/div[@id="_footnotedef_2"]/a[@href="#_footnoteref_2"][text()="2"]', output, 1
+      text = xmlnodes_at_xpath '//div[@id="footnotes"]/div[@id="_footnotedef_2"]/text()', output
       assert_equal '. Second footnote.', text.text.strip
     end
 
@@ -1032,9 +1114,9 @@ Text that has supporting information{empty}footnote:[An example footnote.].
       output = render_embedded_string input
       assert_css '#footnotes', output, 1
       assert_css '#footnotes .footnote', output, 1
-      assert_css '#footnotes .footnote#_footnote_1', output, 1
-      assert_xpath '/div[@id="footnotes"]/div[@id="_footnote_1"]/a[@href="#_footnoteref_1"][text()="1"]', output, 1
-      text = xmlnodes_at_xpath '/div[@id="footnotes"]/div[@id="_footnote_1"]/text()', output
+      assert_css '#footnotes .footnote#_footnotedef_1', output, 1
+      assert_xpath '/div[@id="footnotes"]/div[@id="_footnotedef_1"]/a[@href="#_footnoteref_1"][text()="1"]', output, 1
+      text = xmlnodes_at_xpath '/div[@id="footnotes"]/div[@id="_footnotedef_1"]/text()', output
       assert_equal '. An example footnote.', text.text.strip
     end
 
@@ -1069,6 +1151,23 @@ content{blank}footnote:[commentary]
       assert_same doc.catalog[:footnotes], doc.references[:footnotes]
       assert_same doc.catalog[:ids], doc.references[:ids]
       assert_equal 'Section A', doc.references[:ids]['_section_a']
+    end
+
+    test 'should catalog assets inside nested document' do
+      input = <<-EOS
+image::outer.png[]
+
+|===
+a|
+image::inner.png[]
+|===
+      EOS
+
+      doc = document_from_string input, :catalog_assets => true
+      images = doc.catalog[:images]
+      refute_empty images
+      assert_equal 2, images.size
+      assert_equal images, ['outer.png', 'inner.png']
     end
   end
 
@@ -1149,6 +1248,7 @@ content
 Author Name
 v1.0, 2001-01-01
 :icons:
+:favicon:
 
 image:tiger.png[]
 
@@ -1345,6 +1445,8 @@ section body
     test 'docbook5 backend doctype manpage' do
       input = <<-EOS
 = asciidoctor(1)
+:mansource: Asciidoctor
+:manmanual: Asciidoctor Manual
 
 == NAME
 
@@ -1367,6 +1469,8 @@ section body
       assert_xpath '/xmlns:refentry/xmlns:info/xmlns:title[text() = "asciidoctor(1)"]', result, 1
       assert_xpath '/xmlns:refentry/xmlns:refmeta/xmlns:refentrytitle[text() = "asciidoctor"]', result, 1
       assert_xpath '/xmlns:refentry/xmlns:refmeta/xmlns:manvolnum[text() = "1"]', result, 1
+      assert_xpath '/xmlns:refentry/xmlns:refmeta/xmlns:refmiscinfo[@class="source"][text() = "Asciidoctor"]', result, 1
+      assert_xpath '/xmlns:refentry/xmlns:refmeta/xmlns:refmiscinfo[@class="manual"][text() = "Asciidoctor Manual"]', result, 1
       assert_xpath '/xmlns:refentry/xmlns:refnamediv/xmlns:refname[text() = "asciidoctor"]', result, 1
       assert_xpath '/xmlns:refentry/xmlns:refnamediv/xmlns:refpurpose[text() = "Process text"]', result, 1
       assert_xpath '/xmlns:refentry/xmlns:refsynopsisdiv', result, 1
@@ -1379,6 +1483,23 @@ section body
       refute_nil id_attr.namespace
       assert_equal 'xml', id_attr.namespace.prefix
       assert_equal '_first_section', id_attr.value
+    end
+
+    test 'should output non-breaking space for source and manual in docbook5 manpage output if absent from source' do
+      input = <<-EOS
+= asciidoctor(1)
+
+== NAME
+
+asciidoctor - Process text
+
+== SYNOPSIS
+
+some text
+      EOS
+      result = render_string(input, :keep_namespaces => true, :attributes => {'backend' => 'docbook5', 'doctype' => 'manpage'})
+      assert_xpath %(/xmlns:refentry/xmlns:refmeta/xmlns:refmiscinfo[@class="source"][text() = "#{decode_char 160}"]), result, 1
+      assert_xpath %(/xmlns:refentry/xmlns:refmeta/xmlns:refmiscinfo[@class="manual"][text() = "#{decode_char 160}"]), result, 1
     end
 
     test 'docbook5 backend doctype book' do
@@ -1535,7 +1656,7 @@ asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats
       input = <<-EOS
 = {app}(1)
 :doctype: manpage
-:app: asciidoctor
+:app: Asciidoctor
 
 == NAME
 
@@ -1559,6 +1680,7 @@ asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats
       doc = document_from_string input
       assert_equal 'asciidoctor', doc.attr('manname')
       assert_equal 'converts AsciiDoc source files to HTML, DocBook and other formats', doc.attr('manpurpose')
+      assert_equal '_name', doc.attr('manname-id')
       assert_equal 0, doc.blocks.size
     end
 
@@ -1617,6 +1739,7 @@ asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats
       assert_css 'body.manpage', output, 1
       assert_xpath '//body/*[@id="header"]/h1[text()="asciidoctor(1) Manual Page"]', output, 1
       assert_xpath '//body/*[@id="header"]/h1/following-sibling::h2[text()="NAME"]', output, 1
+      assert_xpath '//h2[@id="_name"][text()="NAME"]', output, 1
       assert_xpath '//h2[text()="NAME"]/following-sibling::*[@class="sectionbody"]', output, 1
       assert_xpath '//h2[text()="NAME"]/following-sibling::*[@class="sectionbody"]/p[text()="asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats"]', output, 1
       assert_xpath '//*[@id="content"]/*[@class="sect1"]/h2[text()="SYNOPSIS"]', output, 1
@@ -1640,6 +1763,7 @@ asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats
       output = render_embedded_string input
       assert_xpath '/h1[text()="asciidoctor(1) Manual Page"]', output, 1
       assert_xpath '/h1/following-sibling::h2[text()="NAME"]', output, 1
+      assert_xpath '/h2[@id="_name"][text()="NAME"]', output, 1
       assert_xpath '/h2[text()="NAME"]/following-sibling::*[@class="sectionbody"]', output, 1
       assert_xpath '/h2[text()="NAME"]/following-sibling::*[@class="sectionbody"]/p[text()="asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats"]', output, 1
     end
@@ -1654,18 +1778,23 @@ asciidoctor - converts AsciiDoc source files to HTML, DocBook and other formats
 
     test 'keeps naughty absolute paths from getting outside' do
       naughty_path = "#{disk_root}etc/passwd"
-      doc = empty_document
-      secure_path = doc.normalize_asset_path(naughty_path)
-      refute_equal naughty_path, secure_path
-      assert_match(/^#{doc.base_dir}/, secure_path)
+      using_memory_logger do |logger|
+        doc = empty_document
+        secure_path = doc.normalize_asset_path naughty_path
+        refute_equal naughty_path, secure_path
+        assert_equal (::File.join doc.base_dir, 'etc/passwd'), secure_path
+        assert_message logger, :WARN, 'path is outside of jail; recovering automatically'
+      end
     end
 
     test 'keeps naughty relative paths from getting outside' do
       naughty_path = 'safe/ok/../../../../../etc/passwd'
-      doc = empty_document
-      secure_path = redirect_streams { doc.normalize_asset_path(naughty_path) }
-      refute_equal naughty_path, secure_path
-      assert_match(/^#{doc.base_dir}/, secure_path)
+      using_memory_logger do
+        doc = empty_document
+        secure_path = doc.normalize_asset_path naughty_path
+        refute_equal naughty_path, secure_path
+        assert_match(/^#{doc.base_dir}/, secure_path)
+      end
     end
 
     test 'should raise an exception when a converter cannot be resolved before conversion' do
