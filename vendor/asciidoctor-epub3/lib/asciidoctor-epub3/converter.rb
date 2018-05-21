@@ -205,16 +205,20 @@ class ContentConverter
     end
   end
 
-  # TODO support use of quote block as abstract
   def preamble node
-    if (first_block = node.blocks[0]) && first_block.style == 'abstract'
-      abstract first_block
-    # REVIEW should we treat the preamble as an abstract in general?
-    elsif first_block && node.blocks.size == 1
-      abstract first_block
-    else
-      node.content
-    end
+    # NOTE this makes the first paragraph in the chapter before the first
+    # section into an abstract. Don't want.
+
+    #if (first_block = node.blocks[0]) && first_block.style == 'abstract'
+    #  abstract first_block
+    ## REVIEW should we treat the preamble as an abstract in general?
+    #elsif first_block && node.blocks.size == 1
+    #  abstract first_block
+    #else
+    #  node.content
+    #end
+
+    node.content
   end
 
   def open node
