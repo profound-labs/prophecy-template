@@ -12,7 +12,7 @@ fi
 # 4. convert to MOBI KF8 with kindlegen
 # (opt) 5. convert to MOBI 6 with ebook-convert (calibre)
 
-MAIN_ADOC="main.adoc"
+MAIN_ADOC="$1.adoc"
 NAME="$1"
 
 # no trailing slash

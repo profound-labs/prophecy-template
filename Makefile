@@ -1,5 +1,4 @@
 FILE=main
-NAME=prophecy
 
 LATEX=lualatex
 BIBTEX=bibtex
@@ -18,13 +17,13 @@ html:
 	asciidoctor -D output stillness-flowing.adoc
 
 epub:
-	./helpers/generate_epub.sh $(NAME)
+	./helpers/generate_epub.sh $(FILE)
 
 epub-validate:
 	EPUBCHECK=~/bin/epubcheck asciidoctor-epub3 -D output -a ebook-validate main.adoc
 
 mobi:
-	./helpers/generate_mobi.sh $(NAME)
+	./helpers/generate_mobi.sh $(FILE)
 
 preview:
 	latexmk -pvc $(FILE).tex

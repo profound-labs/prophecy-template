@@ -10,7 +10,7 @@ fi
 # 2. modify it
 # 3. zip back to EPUB
 
-MAIN_ADOC="main.adoc"
+MAIN_ADOC="$1.adoc"
 NAME="$1"
 
 # no trailing slash
