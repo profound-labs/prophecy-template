@@ -27,7 +27,8 @@ html
   /* set the em base (and relative em anchor) by setting the font-size on html */
   /* TODO set font-size > 100% except for Kindle */
   font-size: 100%
-  -webkit-text-size-adjust: 100%
+  // Setting text-size-adjust disables font scaling on Mac iBooks
+  //-webkit-text-size-adjust: 100%
 
 // padding and margin on the body is for Calibre, Kindle is expected to override it
 

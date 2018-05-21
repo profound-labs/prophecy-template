@@ -83,7 +83,6 @@ html {
 /* set the em base (and relative em anchor) by setting the font-size on html */
 /* TODO set font-size > 100% except for Kindle */
   font-size: 100%;
-  -webkit-text-size-adjust: 100%;
 }
 /* don't set margin on body as that's how many readers frame reading area */
 /* can't set the font-family on body in Kindle */
@@ -1360,11 +1359,11 @@ figcaption {
 figure.image div.content {
   text-align: center;
 }
-figure.image img.sectionbreak {
+figure.image.sectionbreak img {
   margin: 0 auto;
   padding: 15px 0 5px 0;
 }
-figure.image img.quotebreak {
+figure.image.quotebreak img {
   margin: 0 auto;
 }
 .blockquote.sidebar-quote {
