@@ -295,6 +295,11 @@
 }{}
 \ifthenelse{\equal{\BOOK@babelLanguage}{portuguese}}{
   \renewcommand\portuguesehyphenmins{{3}{3}}
+  % If using babel, captions names have to be renamed like this
+  \addto\captionsportuguese{
+    \renewcommand{\contentsname}{Índice}
+    \renewcommand{\bibname}{Referências}
+  }
 }{}
 
 \hyphenpenalty=700
