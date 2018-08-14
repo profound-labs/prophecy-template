@@ -28,3 +28,7 @@
 \\itshape
 \\upshape
 \\bigskip
+\\item
+\\thispagestyle
+\\cleartorecto
+\\cleartoverso

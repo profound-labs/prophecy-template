@@ -17,6 +17,8 @@ perl -0777 -pe "s/\\\\begin\{dialogue\}(.*?)\\\\end\{dialogue\}/\\\\begin{quote}
 perl -0777 -pe "s/\\\\begin\{siderule-quote\}(.*?)\\\\end\{siderule-quote\}/\\\\begin{quote}\n\1\\\\end{quote}/gs" | \
 # \begin{openingVerse} > \begin{verse}
 perl -0777 -pe "s/\\\\begin\{openingVerse\}(.*?)\\\\end\{openingVerse\}/\\\\begin{verse}% <attr role=opening-verse>\n\\\\itshape \1\\\\end{verse}/gs" | \
+# \begin{packeditemize} > \begin{itemize}
+perl -0777 -pe "s/\\\\begin\{packeditemize\}(.*?)\\\\end\{packeditemize\}/\\\\begin{itemize}\n\1\\\\end{itemize}/gs" | \
 # glossarydescription
 sed -e 's/\\begin{glossarydescription}/\\begin{description}/; s/\\end{glossarydescription}/\\end{description}/;' | \
 # chapter title and subtitle
@@ -37,12 +39,15 @@ perl -0777 -pe "s/\\\\includegraphics[[][^]]+[]]\{.*?\}//gs" | \
 perl -0777 -pe "s/\\\\verseRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
 perl -0777 -pe "s/\\\\quoteRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
 perl -0777 -pe "s/\\\\quoteRefInline\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
+perl -0777 -pe "s/\\\\quoteTitleFmt\{(.*?)\}/\\\\emph{\1}/gs" | \
 perl -0777 -pe "s/\\\\thai\{(.*?)\}/\1/gs" | \
 perl -0777 -pe "s/\\\\textup\{(.*?)\}/{\\\\upshape \1}/gs" | \
 perl -0777 -pe "s/\\\\label\{.*?\}//gs" | \
 perl -0777 -pe "s/\\\\enlargethispage\**\{.*?\}//gs" | \
 perl -0777 -pe "s/\\\\setlength\{.*?\}\{.*?\}//gs" | \
+perl -0777 -pe "s/\\\\thispagestyle\{.*?\}\{.*?\}//gs" | \
 perl -0777 -pe "s/\\\\pageref\{.*?\}/FIXME:pageref/gs" | \
+perl -0777 -pe "s/\\\\definecolor\{.*?\}\{.*?\}\{.*?\}//gs" | \
 # Repeating hyphen (in Portuguese)
 sed 's/\(\w\)"-\(\w\)/\1-\2/g' |\
 sed 's/^\\vspace\**[{][^}]\+[}]%*$//g' |\

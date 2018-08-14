@@ -1,6 +1,8 @@
 # The LaTeX which we can replace with sth which pandoc can convert
 \\begin[{]openingVerse[}]
 \\end[{]openingVerse[}]
+\\begin[{]packeditemize[}]
+\\end[{]packeditemize[}]
 \\begin[{]lpchah[}]
 \\end[{]lpchah[}]
 \\begin[{]dialogue[}]
@@ -43,3 +45,5 @@
 \\enlargethispage\**[{]
 \\vspace\**[{]
 \\Large
+\\quoteTitleFmt
+\\definecolor

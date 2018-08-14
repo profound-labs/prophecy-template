@@ -7,6 +7,7 @@ TEX_SRC="$1"
 # The LaTeX that pandoc can convert
 # The LaTeX which we can replace with sth which pandoc can convert
 RES=$(cat "$TEX_SRC" | \
+          perl -0777 -pe "s/\\\\setlength\{.*?\}\{.*?\}//gs" | \
           pcregrep -M -v -e "\n% *LATEX_BEGIN(\n|.)*?% *LATEX_END" | \
           pcregrep -e '\\.' | \
           sed 's/\\./\n&/g' | \
