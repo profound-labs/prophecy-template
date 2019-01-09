@@ -3,6 +3,7 @@ output/
 main.pdf
 
 # Emacs temp files
+auto/
 *~
 \#*\#
 *.elc
@@ -27,7 +28,6 @@ tags
 *.lof
 *.fls
 *.fdb_latexmk
-auto/
 
 # General macOS
 .DS_Store
