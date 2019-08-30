@@ -376,6 +376,12 @@ philo-sophical munindo amaravati thai-land}
   \thispagestyle{empty}\mbox{}\newpage
 }
 
+\newcommand{\emptyUntilEven}{%
+  \ifodd\thepage%
+  \clearpage\thispagestyle{empty}\null%
+  \fi%
+}
+
 \newcounter{pageRem}
 \newcounter{origPage}
 
