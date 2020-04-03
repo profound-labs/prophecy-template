@@ -1,15 +1,21 @@
 #!/bin/bash
 
-make document && \
-make document && \
-make document && \
-make document
+TARGET=document
+
+if [ "$1" != "" ]; then
+    TARGET="$1"
+fi
+
+make $TARGET && \
+    make $TARGET && \
+    make $TARGET && \
+    make $TARGET
 
 RET=$?
 
 if [ $RET -eq 0 ]; then
-    notify-send "Document compiled"
+    notify-send "$TARGET compiled"
 else
-    notify-send --urgency=critical "Document failed to compile"
+    notify-send --urgency=critical "$TARGET failed to compile"
 fi
 
