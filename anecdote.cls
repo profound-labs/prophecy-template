@@ -247,11 +247,14 @@
 \RequirePackage{hyperxmp}
 \RequirePackage{hyperref}
 
+% https://tex.stackexchange.com/questions/32076/incorrect-toc-index-cross-references-when-resetting-memoir-class-counters
+% hypertexnames=true
+
 \hypersetup{
   unicode=true,
   bookmarksopen=true,
   bookmarksopenlevel=3,
-  hypertexnames=false,
+  hypertexnames=true,
   linktocpage=true,
   plainpages=false,
   breaklinks
