@@ -130,6 +130,8 @@
 \RequirePackage{longtable}
 \RequirePackage{environ}
 \RequirePackage{pageslts}
+\RequirePackage{array}
+\RequirePackage{ragged2e}
 
 \RequirePackage{tikz}
 \usetikzlibrary{positioning}
@@ -359,6 +361,17 @@ philo-sophical munindo amaravati thai-land}
 % accented characters at the end of words.
 
 % === Custom commands and environments ===
+
+% https://tex.stackexchange.com/questions/4839/raggedleft-paragraph-in-a-table
+
+% Use with: \begin{tabular}{L{30mm}R{30mm}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+% Allows hyphenation:
+% \newcolumntype{L}[1]{>{\RaggedRight\hspace{0pt}}p{#1}}
+% \newcolumntype{R}[1]{>{\RaggedLeft\hspace{0pt}}p{#1}}
 
 \newcommand\dividerRule{%
 {\centering\bigskip
