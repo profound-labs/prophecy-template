@@ -32,6 +32,14 @@ section
   &#titlepage
     .subtitle
       margin: 0
+    .title-second-line h2
+      text-align: center !important
+      text-transform: none
+      font-style: italic !important
+      font-family: $chapter-font !important
+      font-size: 1.9em
+      margin-top: 0
+      margin-bottom: 1.5em
     > header h1
       text-align: center
 
@@ -68,7 +76,7 @@ p.subtitle
 
 .titlepage-author
   text-align: center
-  margin-top: 8em
+  margin-top: 5em
 
 .blockquote.opening-verse blockquote
   font-size: 1.1em
@@ -94,6 +102,11 @@ p.subtitle
   font-style: italic
   em
     font-style: normal
+
+.blockquote.quote-plain blockquote
+  font-style: normal
+  em
+    font-style: italic
 
 // NOTE: line-height must be relative value. 0pt is an absolute value and triggers warnings from kindlegen:
 // Absolute value specified for CSS property in content is not supported by Kindle readers. Please use % or refer Kindle Publishing Guidelines about usage of property: 'line-height'

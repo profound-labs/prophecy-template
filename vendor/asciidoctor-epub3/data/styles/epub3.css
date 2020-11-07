@@ -1280,6 +1280,15 @@ section#appendix-thai .table em {
 section#titlepage .subtitle {
   margin: 0;
 }
+section#titlepage .title-second-line h2 {
+  text-align: center !important;
+  text-transform: none;
+  font-style: italic !important;
+  font-family: "Source Sans Pro", sans-serif !important;
+  font-size: 1.9em;
+  margin-top: 0;
+  margin-bottom: 1.5em;
+}
 section#titlepage > header h1 {
   text-align: center;
 }
@@ -1315,7 +1324,7 @@ p.subtitle {
 }
 .titlepage-author {
   text-align: center;
-  margin-top: 8em;
+  margin-top: 5em;
 }
 .blockquote.opening-verse blockquote {
   font-size: 1.1em;
@@ -1342,6 +1351,12 @@ p.subtitle {
 }
 .blockquote.quote blockquote em {
   font-style: normal;
+}
+.blockquote.quote-plain blockquote {
+  font-style: normal;
+}
+.blockquote.quote-plain blockquote em {
+  font-style: italic;
 }
 .top-anchor {
   font-size: 0pt;
@@ -1372,4 +1387,92 @@ figure.image.quotebreak img {
 }
 .blockquote.sidebar-quote > blockquote:first-child p {
   margin-top: 0pt;
+}
+body.calibre-viewer-dark-colors {
+  background-color: transparent;
+}
+body.calibre-viewer-dark-colors p {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors b.button {
+  text-shadow: 1px 0 0 #b3b3b1;
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors a:link {
+  color: #ddd;
+  -webkit-text-fill-color: #ddd;
+  border-bottom: 1px dashed #ddd;
+}
+body.calibre-viewer-dark-colors a:visited {
+  color: #ddd;
+  -webkit-text-fill-color: #ddd;
+}
+body.calibre-viewer-dark-colors p,
+body.calibre-viewer-dark-colors ul,
+body.calibre-viewer-dark-colors ol,
+body.calibre-viewer-dark-colors li,
+body.calibre-viewer-dark-colors dl,
+body.calibre-viewer-dark-colors dt,
+body.calibre-viewer-dark-colors dd,
+body.calibre-viewer-dark-colors footer,
+body.calibre-viewer-dark-colors div.verse .attribution,
+body.calibre-viewer-dark-colors table.table th,
+body.calibre-viewer-dark-colors table.table td,
+body.calibre-viewer-dark-colors figcaption,
+body.calibre-viewer-dark-colors caption {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors code,
+body.calibre-viewer-dark-colors kbd,
+body.calibre-viewer-dark-colors pre {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors ul > li::before {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors ul ul > li::before {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors ul ul ul > li::before {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors ul ul ul ul > li::before {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h1 {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h2 {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h3 {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h4 {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h5 {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h1.chapter-title {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h1.chapter-title .subtitle {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors h1.chapter-title em {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors blockquote {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors blockquote footer .context {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors .blockquote.opening-verse blockquote > p:first-child::before {
+  color: #ddd;
+}
+body.calibre-viewer-dark-colors caption,
+body.calibre-viewer-dark-colors figcaption {
+  color: #ddd;
 }
