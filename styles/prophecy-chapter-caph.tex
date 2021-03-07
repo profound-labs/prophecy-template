@@ -1,0 +1,85 @@
+% === Caph ===
+%
+% Chapter title size: 18 / 20 pt
+
+\makechapterstyle{caph}{
+  \chapterstyle{default}
+  \setlength{\beforechapskip}{10mm}
+  \setlength{\chapterTitleLeftSkip}{0pt}
+  \renewcommand\printchaptername{}
+  \renewcommand\chapternamenum{}
+  \renewcommand\chapnumfont{\chapterNumberFont\chapterNumberSize}
+  \if@mainmatter
+    \setlength{\chapterNumberWidth}{\widthof{\chapnumfont 99.} + 10pt}
+  \else
+    \setlength{\chapterNumberWidth}{0pt}
+  \fi
+  \renewcommand\printchapternum{}
+  \renewcommand\afterchapternum{}
+  \renewcommand\printchapternonum{}
+  \renewcommand\chaptitlefont{\chapterTitleFont\chapterTitleSize\itshape}
+  \renewcommand\titlealign{\if@mainmatter \raggedright \else \centering \fi}
+  \renewcommand*\printchaptertitle[1]{%
+    % ===
+    \SetHorizontalCoffin\ChapterNumberBox{%
+      \parbox{\chapterNumberWidth}{%
+        \if@mainmatter
+          \chapnumfont\color{chapternum}%
+          \hspace*{\chapterTitleLeftSkip}\thechapter .%
+        \else
+          \mbox{}%
+        \fi
+      }%
+    }%
+    % ===
+    \SetHorizontalCoffin\ChapterNumberRuleBox{%
+      \color{gray!80}\rule{150pt}{1pt}%
+    }%
+    % ===
+    \SetHorizontalCoffin\ChapterTitleBox{%
+      \parbox{\linewidth - \chapterTitleLeftSkip - \chapterNumberWidth}{%
+        \titlealign
+        \chaptitlefont\color{chaptertitle}%
+        ##1%
+        \ifchapterfootnote%
+          \hspace*{2pt}\theChapterFootnoteMark%
+        \fi%
+        \ifchapterauthor%
+          \vskip 0.5\onelineskip%
+          \chapterAuthorFmt{\theChapterAuthor}%
+          \global\chapterauthorfalse%
+        \fi%
+        \ifchapternote%
+          \vskip 0.5\onelineskip%
+          \chapterNoteFmt{\theChapterNote}%
+          \global\chapternotefalse%
+        \fi%
+        \ifchapterfootnote%
+          \theChapterFootnoteText%
+          \global\chapterfootnotefalse%
+        \fi%
+      }%
+    }%
+    % ===
+    \JoinCoffins*\ChapterNumberBox[r,b]\ChapterNumberRuleBox[r,t](0pt,-10pt)%
+    \JoinCoffins\ChapterNumberBox[r,b]\ChapterTitleBox[l,t](0pt,-40pt)%
+    \JoinCoffins\ChapterWrapBox\ChapterNumberBox%
+    %
+    \raggedright\hspace*{\chapterTitleLeftSkip}%
+    \TypesetCoffin\ChapterWrapBox%
+  }
+  \setlength{\afterchapskip}{2.5\onelineskip}
+  \renewcommand\afterchaptertitle{\par\nobreak\vskip \afterchapskip}%
+}
+
+\makechapterstyle{caph-high}{
+  \chapterstyle{caph}
+  \setlength{\beforechapskip}{0pt}
+}
+
+\makechapterstyle{caph-toc}{
+  \chapterstyle{caph-high}
+  \setlength{\chapterTitleLeftSkip}{6pc}
+  \setlength{\afterchapskip}{1.5\onelineskip}
+  \renewcommand\titlealign{\raggedright}
+}

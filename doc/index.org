@@ -1,0 +1,10 @@
+#+TITLE: Projects Index
+#+SETUPFILE: doc-setup.org
+#+SETUPFILE: ../assets/org-html-themes/org/theme-readtheorg.setup
+
+* Projects
+
+- [[./prophecy-template.html][Prophecy LaTeX Book Template]]
+- [[./prophecy-class.html][Prophecy Document Class]]
+- [[./book-production-guide.html][Book Production Guide]]
+

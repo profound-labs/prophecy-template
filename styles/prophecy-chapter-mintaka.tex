@@ -1,0 +1,51 @@
+% Mintaka - Delta Orionis
+\makechapterstyle{mintaka}{%
+  \chapterstyle{bellatrix}
+  \setlength{\beforechapskip}{30mm}
+  \setlength{\afterchapskip}{54pt}
+  \renewcommand\chaptitlefont{%
+    \chapterTitleFont%
+    \chapterTitleSize%
+    \color{chaptertitle}%
+    \itshape%
+  }
+  \renewcommand\afterchapternum{}
+  \renewcommand\printchaptername{}
+  \renewcommand\printchapternum{}
+  \renewcommand\printchapternonum{\vspace*{-47pt}}
+  \renewcommand*\printchaptertitle[1]{%
+    \begin{adjustwidth}{\chapindent}{}
+      \raggedright%
+      {%
+        \chaptitlefont ##1%
+        \ifchapterfootnote%
+          \chapterTitleFootnoteSize%
+          \color{chaptertitlefootnote}%
+          \hspace*{0.8mm}\raisebox{5pt}{\theChapterFootnoteMark}%
+        \fi%
+      }%
+      \ifchapterauthor%
+        \vskip 0.5\onelineskip%
+        \chapterAuthorFmt{\theChapterAuthor}%
+        \global\chapterauthorfalse%
+      \fi%
+      \ifchapternote%
+        \vskip 0.5\onelineskip%
+        \chapterNoteFmt{\theChapterNote}%
+        \global\chapternotefalse%
+      \fi%
+    \end{adjustwidth}%
+    \ifchapterfootnote%
+      \theChapterFootnoteText%
+      \global\chapterfootnotefalse%
+    \fi%
+  }
+}
+
+\makechapterstyle{mintaka-backmatter}{%
+  \chapterstyle{mintaka}
+  \renewcommand\printchapternum{\vspace*{-47pt}}
+  \renewcommand\printchapternonum{\vspace*{-47pt}}
+  \setlength{\beforechapskip}{30mm}
+  \setlength{\afterchapskip}{20pt}
+}

@@ -1,0 +1,18 @@
+#+TITLE: Book Production Guide
+#+SETUPFILE: doc-setup.org
+#+SETUPFILE: ../assets/org-html-themes/org/theme-readtheorg.setup
+
+[[./index.html][← Back to Index]]
+
+* Overview
+** Editing Stages
+  
+[[file:./images/book-editing-stages.jpg]]
+
+** Production Pipeline
+
+[[file:./images/book-production-pipeline.jpg]]
+
+* Book Production Guide
+** Init
+

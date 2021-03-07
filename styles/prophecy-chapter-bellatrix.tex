@@ -1,0 +1,48 @@
+\makechapterstyle{bellatrix}{%
+  \chapterstyle{default}
+  \setlength{\beforechapskip}{40mm}
+  \setlength{\chapindent}{0.5in}
+  \setlength{\midchapskip}{-2pt}
+  \setlength{\afterchapskip}{32pt}
+  \renewcommand\chapnumfont{%
+    \chapterNumberFont%
+    \chapterNumberSize%
+    \color{chapternum}%
+    \itshape%
+  }
+  \renewcommand\chapnamefont{\chapnumfont}
+  \renewcommand\chaptitlefont{%
+    \chapterTitleFont%
+    \chapterTitleSize%
+    \color{chaptertitle}%
+    \upshape%
+  }
+  \renewcommand\afterchapternum{\par\nobreak\vspace*{\midchapskip}}
+  \renewcommand\printchaptername{\hspace*{\chapindent}\chapnamefont \@chapapp}
+  \renewcommand\chapternamenum{\space}
+  \renewcommand\printchapternum{\chapnumfont \numtoName{\c@chapter}}
+  \renewcommand\printchapternonum{\vspace*{-47pt}}
+  \renewcommand*\printchaptertitle[1]{%
+    \begin{adjustwidth}{\chapindent}{}
+      \raggedright%
+      {\chaptitlefont\textls{\MakeUppercase{##1}}}%
+      \ifchapterfootnote%
+        \hspace*{0.8mm}\theChapterFootnoteMark%
+      \fi%
+      \ifchapterauthor%
+        \vskip 0.5\onelineskip%
+        \chapterAuthorFmt{\theChapterAuthor}%
+        \global\chapterauthorfalse%
+      \fi%
+      \ifchapternote%
+        \vskip 0.5\onelineskip%
+        \chapterNoteFmt{\theChapterNote}%
+        \global\chapternotefalse%
+      \fi%
+    \end{adjustwidth}%
+    \ifchapterfootnote%
+      \theChapterFootnoteText%
+      \global\chapterfootnotefalse%
+    \fi%
+  }
+}

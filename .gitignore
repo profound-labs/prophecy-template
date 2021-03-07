@@ -1,6 +1,7 @@
 # Project output
 output/
 main.pdf
+doc/*.html
 
 # Emacs temp files
 auto/
@@ -28,6 +29,7 @@ tags
 *.lof
 *.fls
 *.fdb_latexmk
+doc/_minted-prophecy/
 
 # General macOS
 .DS_Store
