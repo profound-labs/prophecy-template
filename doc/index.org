@@ -7,4 +7,5 @@
 - [[./prophecy-template.html][Prophecy LaTeX Book Template]]
 - [[./prophecy-class.html][Prophecy Document Class]]
 - [[./book-production-guide.html][Book Production Guide]]
+- [[./software-setup.html][Software Setup]]
 

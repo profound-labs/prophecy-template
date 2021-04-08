@@ -1,0 +1,20 @@
+#+TITLE: Software Setup
+#+SETUPFILE: doc-setup.org
+#+SETUPFILE: ../assets/org-html-themes/org/theme-readtheorg.setup
+
+* Overview
+
+- LaTeX TeXLive
+  - https://www.tug.org/texlive/acquire-iso.html
+- Pandoc
+  - https://github.com/jgm/pandoc/releases
+- Asciidoctor
+  - https://asciidoctor.org/
+  - https://github.com/asciidoctor/asciidoctor
+- Asciidoctor-epub3
+  - https://rubygems.org/gems/asciidoctor-epub3
+  - https://github.com/asciidoctor/asciidoctor-epub3/
+- Calibre
+  - https://calibre-ebook.com/
+- Epubcheck
+  - https://github.com/IDPF/epubcheck/releases

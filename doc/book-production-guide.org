@@ -14,5 +14,863 @@
 [[file:./images/book-production-pipeline.jpg]]
 
 * Book Production Guide
+** Finished Release Files
+
+The following files are released at the end of a typical book production:
+
+*For print:*
+
+- mainmatter PDF, with cropmarks if needed for bleeded graphics
+- cover PDF
+- cover UV mask PDF, if spot varnish is requested
+
+*For ebooks:*
+
+- mainmatter PDF, no cropmarks, first page is the book cover
+- Epub
+- Mobi (produced from the Epub)
+- HTML pages, if published on a website
+
+*Sources:*
+
+- mainmatter sources ZIP
+- cover sources ZIP
+
 ** Init
+
+Clone the [[https://github.com/profound-labs/prophecy-template][prophecy-template]] and init a new repo:
+
+: git clone https://github.com/profound-labs/prophecy-template ./mindfulness-deathless-pt
+: cd mindfulness-deathless-pt
+: rm .git -rf
+: git init
+: git commit --allow-empty -m initial
+
+Run Ruby =bundler= to parse the Gemfile and install Ruby libs:
+
+: bundle
+
+Quick edit:
+
+- README.md
+- main.tex
+  - leave TOC for after conversion
+  - set =babelLanguage=
+  - set hypersetup / pdflang
+- main.adoc
+  - leave TOC for after conversion
+  - edit data tags if known
+  - set lang
+
+Check LICENSE.txt
+
+Make the first commit. Murmur an invocation of the muse.
+
+: git add -A .
+: git commit -m first
+
+** Convert the manuscript
+*** converting ODT or DOCX to TEX
+
+Open the manuscript file in LibreOffice, save as DOCX.
+
+Replace double linebreaks with paragraph breaks.
+
+Remove non-breaking space if it has no purpose.
+
+*** converting with pandoc
+
+The pandoc Docx reader can extract images, deals better with trailing spaced
+italics, footnotes and produces cleaner headers.
+
+In the most simple case:
+
+: pandoc -f docx -t latex --wrap=none trav.docx > trav.docx.tex
+
+Use ~--extract-media=./images~ if needed.
+
+More involved:
+
+: ./convert.sh
+
+#+begin_src bash
+#!/bin/bash
+
+for i in $(ls -1 *.docx); do
+    echo "$i"
+    pandoc -f docx -t latex+footnotes -o "./tex/$i.tex" "$i"
+done
+
+# remove \label{}
+sed -i 's/\\label{[^}]\+}//' ./tex/*.tex
+
+# fix {[} and {]}
+sed -i -e 's/{\[}/[/g; s/{\]}/]/g;' ./tex/*.tex
+
+# remove roman numerals from section titles
+sed -i 's/\\section{[IV]\+\. */\\section{/' ./tex/*.tex
+
+# remove double blanks
+for i in $(ls -1 ./tex/*.tex); do
+    cat -s "$i" > "$i.tmp"
+    mv "$i.tmp" "$i"
+done
+#+end_src
+
+After this, copy in the =tex= contents to the repository.
+
+Just get it to compile. Fix only major errors at this time, or redo the conversion.
+
+*** separating chapters
+
+Open the tex and copy chapters into separate files in =./manuscript/tex/=, clean
+up only the header and subheaders for now.
+
+Comment out image references.
+
+*** getting it to compile
+
+Fix up the text just enough to get it compile.
+
+Just add =\chapter=, leave quote formatting, etc. for later.
+
+** design the pages
+*** creating page mock-ups
+
+Inkscape is easy to use when experimenting with fonts, sizes and layout.
+
+Open a previous PDF with Inkscape, import a typical page and start changing elements.
+'Save a Copy' will save a PDF, print to see how it looks on paper.
+
+*** selecting fonts
+*** designing sample page layouts
+
+Consider:
+
+- chapter and section headings
+- appendix chapters
+- backmatter chapters
+- running header and footer
+- TOC
+- footnotes
+- endnotes
+
+- conversations: \speaker{Ajahn Chah}
+- Q & A: ...
+- Q: ...
+- A: ...
+
+Get the book to compile with the basic layout with the fonts you want to use.
+
+Open (not Import) the the default page in Inkscape as vectors to get basic layout
+sizes and positions.
+
+Try design ideas, export to image and send to the author for review. Don't
+export PDF, it doesn't display reliably.
+
+Try =Internal Import= first, use =Replace fonts=. It is useful to have pieces as
+text elements instead of paths.
+
+Use =Poppler Import= if there are tricky marks or shapes on the page that the
+navive import produces artefacts for. Maybe you'll have to select them and copy
+over for best results.
+
+Import:
+
+- chapter page
+- verso page
+- recto page
+- TOC page
+
+Use separate .svg files, each page will need different guides for margin alignments.
+
+Add a border rectangle with 0.4pt stroke, and =Save a Copy= as PDFs for printing.
+
+** clean-up the formatting
+*** general
+
+Look for bad semantic formatting syntax, fix the easy fixes.
+
+Fix typos and conversion artefacts.
+
+Go through the chapter files one by one and fix the easy fixes and immediately
+apparent errors.
+
+*** review
+
+Wrap thai in ~\thai~:
+
+: rg '\p{Thai}' ./*.tex
+
+0-2 letter italics:
+
+: rg '\\emph{[.{0,2}]}'
+
+~\footnote~ before full stop, comma, quotemark.
+
+~\footnote~ before closing quotemark.
+
+Pali words in italics.
+
+Full stop, quote, etc. not included in the italics.
+
+Convert Glossary items to =glossarydescription=.
+
+: \begin{glossarydescription}
+: 
+: \item[anicca] (Pali) Impermanence: one of the \emph{three characteristics of
+:     existence} along with not-self (\emph{anattā}) and unsatisfactoriness
+:   (\emph{dukkha}).
+: 
+: \end{glossarydescription}
+
+*** basic typefaces
+
+Review basic typeface settings for the design in ~prophecy.cls~.
+
+*** go through the files and fix syntax
+
+Don't reflow the text in emacs (Alt+Q), to make it easier to diff direct pandoc output.
+
+Look for ={[}= from the coversion:
+
+: pt -e "{\[}|{\]}"
+
+Use =neovim= when using macros.
+
+Search for speaker names:
+
+: /^ *([[:alpha:]']\+ [[:alpha:]']\+
+
+Moving speaker names to parens with a macro (pasted here in nvim):
+
+: "adi(0df {O
+% Speaker: "ap
+
+Replace =\textsuperscript{th}= with =th=.
+
+Replace =quote= environment with =lpchah=:
+
+: perl -0777 -i -pe "s/(% Speaker: Luang Por\n+)\\\\begin\{quote\}(.*?)\\\\end\{quote\}/\1\\\\begin{lpchah}\2\\\\end{lpchah}/gs" ./*.tex
+
+Review with =meld=, it will show the changes since the last commit.
+
+Find when Luang Por is not wrapped in an environment:
+
+: pcregrep -M '^% Speaker: Luang Por\n\s[^\s\\]' ./*.tex
+
+Find speakers followed by and environment, should be all Luang Por:
+
+: pcregrep -M '^% Speaker: [^\n]+\n\s\\begin' ./*.tex | grep -v 'Speaker: Luang Por' | grep -v 'lpchah' | uniq
+
+Fix closing parens in =\emph=:
+
+: (\emph{Upasampadā)} to (\emph{Upasampadā})
+
+: perl -0777 -i -pe "s/(\(\\\\emph\{[^\\\\\)}]+)\)\}/\1})/gs" ./*.tex
+
+Fix quote marks included in =emph=:
+
+: indicated by the old Thai monastic idiom referring to it: `\emph{prot
+: sat',} or `saving sentient beings'. Seeing the monks' restrained and
+
+: `\emph{Attā hi attano nātho.' `}
+
+: grep -E '[[:punct:]]\}' ./*.tex
+
+Normalize =\emph{}= jumbles.
+
+: \emph{Mah}ā\emph{nik}ā\emph{ya} and \emph{Dhammayut nik}ā\emph{ya}
+: (\emph{pa}ṭ\emph{ipatti})
+
+It will need two or more passes.
+
+: perl -0777 -i -pe "s/(\\\\emph\{[ [:alpha:]āīūṃṅñṭḍṇḷĀĪŪṂṄÑṬḌṆḶ]+)\}([[:alpha:]āīūṃṅñṭḍṇḷĀĪŪṂṄÑṬḌṆḶ]+)\\\\emph\{([ [:alpha:]āīūṃṅñṭḍṇḷĀĪŪṂṄÑṬḌṆḶ]+\})/\1\2\3/g" ./*.tex
+
+Any more of this mess?
+
+: pcregrep '\}[-[:alpha:]āīūṃṅñṭḍṇḷĀĪŪṂṄÑṬḌṆḶ]+\\' ./*.tex
+
+Find cases of 0-2 characters in =\emph=. Note that =\emph{I}= is legitimate.
+
+: grep -E '\\emph{.{0,2}}' ./*.tex
+
+Remove =emph= from quotes, parens, commas:
+
+: \emph{.}
+: \emph{,}
+: \emph{'}
+: \emph{(`}
+: \emph{--}
+: \emph{. }
+: \emph{(}white-robed nuns)
+
+: perl -0777 -i -pe "s/\\\\emph\{([ ,:\.\'\`\(\)-]{0,2})\}/\1/g" ./*.tex
+
+Find footnotes before punctuation.
+
+: Here we go again. Another \emph{kappatī}\footnote{A Pali
+:   word from the mealtime blessing. Luang Por's mnemonic for `a cup of
+:   tea'.}.
+
+: All this is called \emph{vitakka}\footnote{In this paragraph Luang Por
+:   explains the five mental states that define the first state of deep
+:   absorption concentration (\emph{jhāna}).}: raising something up
+
+: pcregrep -M '\\footnote\{[^\n]+\}[[:punct:]]' ./*.tex
+
+Don't italicize the parens wrapping the terms, unless already in an italic block. Follow Bringhurst, not Chicago. Use the form:
+
+: (\emph{nimitta})
+
+https://tex.stackexchange.com/questions/13048/upright-parentheses-in-italic-text
+
+https://tex.stackexchange.com/questions/14983/should-i-include-punctuation-marks-in-emph-or-should-i-place-those-marks-after
+
+https://english.stackexchange.com/questions/9878/italics-and-punctuation
+
+Find and fix terms with italicized parens:
+
+: grep -E '\\emph\{\(' ./*.tex
+
+: \emph{(MN 112)}
+: \emph{(nimitta)}
+: \emph{(parikamma-nimitta).}
+: \emph{(uggaha-nimitta).}
+: \emph{(paṭibhāga-nimitta).''}
+
+: perl -0777 -i -pe "s/\\\\emph\{\(([- \.0-9[:punct:][:alpha:]āīūṃṅñṭḍṇḷĀĪŪṂṄÑṬḌṆḶ]+)\)([^\}]*)\}/(\\\\emph{\1})\2/g" ./*.tex
+
+Find Thai and wrap it in ~\thai{}~ to set the appropriate font.
+
+: pt -e '\p{Thai}' ./*.tex
+
+Find weird whitespace.
+
+: grep -f ~/prods/weird-spaces ./*.tex
+
+Find triple full stops instead of ellipses.
+
+: grep -E '\.\.\.' ./*.tex
+
+Fix quotes ending in triple ='''= with =\thinspace=. Otherwise you get =”’=, when you need =’ ”=.
+
+: grep -E "'''" ./*.tex
+
+: moment, looking at the babies, then laughed quietly to himself, `Oh
+: well, oh well.'\thinspace ''
+
+Other bad quote patterns:
+
+: ``'Yes, they all die.' I answered irritably.''
+: ```Yes.' I replied sheepishly.''
+: good. `\emph{Attā hi attano nātho.' `}It's the self that is the refuge
+
+Convert all smart-quote characters to LaTeX equivalents to avoid ambiguity in pattern matching.
+
+: sed -i -e "s/‘/\`/g; s/’/'/g; s/“/\`\`/g; s/”/''/g;" ./*.tex
+
+Find un-smart single and double quotes
+
+: grep -E " '{1,2}\w" ./*.tex
+: sed -i "s/ '\(\w\)/ \`\1/g" ./*.tex
+
+: grep -E ' "{1,2}\w' ./*.tex
+: sed -i 's/ "\(\w\)/ \`\`\1/g' ./*.tex
+
+: grep -E '\w"{1,2}[^[:alpha:]-]' ./*.tex
+: sed -i "s/\(\w\)\"\([^[:alpha:]-]\)/\1''\2/g" ./*.tex
+
+Or, if needing the unicode quotation marks instead, as in the case of ebooks:
+
+: sed -i -f ../../helpers/smart_quotes_unicode.sed ./*.adoc
+
+Find - (minus) instead of -- (en-dash)
+
+: grep -E ' - ' ./*.tex
+: grep -E '[^[:alpha:]0-9-]-[^[:alpha:]0-9-]' ./*.tex
+
+Find places where nested quotes don't alternate single and double quote marks.
+
+: pcregrep -M "[^\`]\`[^\`][^']*[^\`]\`[^\`]" ./*.tex
+
+Review the spaces before and after =\ldots{}=
+
+: pcregrep -M "[^ ]\\\\ldots{} " ./*.tex
+
+** implement the design
+*** chapter headings for front- main- and backmatter
+*** section headings
+*** running header and footer
+*** book opening page
+*** titlepage
+*** gift of Dhamma page
+*** add all expected parts and chapters, use lipsum if necessary
+*** cover
+
+Design complex covers in Inkscape.
+
+Simple covers can be OK to implement in LaTeX.
+
+** extend the typefaces
+
+Add accents to the typefaces where missing
+
+Pali and European accents.
+
+** format the text
+
+format the text to be visually consistent
+
+Fixing spacing in the text, changing point sizes, aligning things, etc.
+
+Portuguese uses repeating hyphen. Babel allows this with ~"-~, as in ~tornar"-se~.
+
+: sed -i 's/\([[:alpha:]][^"]\)\(-[[:alpha:]]\)/\1"\2/g' introduction.tex
+
+** add the graphics
+
+- image inserts
+- decoration
+- illustrations
+
+- positioning
+- check good cropping
+- check contrast or color haze
+- test edge bleeding
+
+** review the details
+*** style and formatting tweaks
+
+fixing spacing and italics in quoted passges
+
+- check the tracking amount (\MakeUppercase, chapter, section title)
+
+*** title casing in chapter titles and TOC
+*** find bad type -- save PDF for later diff
+**** manually compare the PDF with the manuscript
+
+- look for missing text or missing style
+- check page order, quotes on the correct side, front- and backmatter pieces, etc.
+
+**** fix clubs, orphans, widows, hyphens
+
+TODO is there better than dar-\linebreak-me ?
+
+Make sure hyphenmins for the babel language are set correctly. Consult the =texdoc babel-portuges=.
+
+English is 3-3.
+
+=\portugeshyphenmins= is 2-3, but we prefer 3-3.
+
+- orphans
+- widows
+- clubs if possible
+- page break after hyphen (use \mbox{})
+
+- unfortunate hyphenation
+- dar-me at -, don't hyphen or hyphen on both lines
+
+**** page numbering
+
+Contents page is page i
+
+**** check four corners of the PDF
+
+Use Dual, turn off continous, so that the content doesn't jump and layout
+positioning is the same when paging.
+
+Zoom out the page and move the screen away a bit. Zoom out until the
+characteristic of the page layout is more apparent than the individual words,
+but bad hyphenation at the edges is still apparent. Try ~90 % zoom.
+
+Mantra: corners, edges, center.
+
+Look in the four corners. Run the eye along the inner and outer edges of the
+text. Scan the middle of the page for texture and spacing.
+
+First round:
+
+Horizontal top and bottom:
+
+- header - should it have that header?
+- top corners of textblock
+- footer - should it have that footer?
+- bottom corners of textblock
+- page num - is the number OK?
+
+Second round:
+
+Vertical edges:
+
+- edges - words jutting out?
+- end of the page hyphens?
+
+Vertical center:
+
+- spacing - par skips, section skips
+- texture - justification gaps, rivers, holes
+
+**** hyphenation
+
+Portuguese have repeating hyphen. Add ="-= in the manuscript and enable it in the class:
+
+: cd manuscript/tex
+: sed -i 's/\(\w\w\)-\(\w\w\)/\1"-\2/g' ./*.tex
+
+Review with =meld=:
+
+: meld .
+
+There are - chars in label names and so on (copyright page).
+
+**** line- or pagebreak after first word
+**** quotation style
+
+Portuguese uses « » for quoted passages
+
+*** fix punctuation mistakes with shell regex
+
+NOTE: Use regex on *.tex, in the manuscript/tex folder.
+
+NOTE: Commit all changes before applying regex subs, so that you can revert by =git checkout=.
+
+: cd manuscript/tex
+
+Multiple quotes:
+
+: rg -e "```|'''"
+
+Keep an eye out for footnote positions and punct. marks.
+
+- =\ldots\= for ellipis instead of =...=
+
+#+begin_src fish
+sed -i 's/\.\.\./\\\\ldots{}/g' *.tex
+#+end_src
+
+- check weird spaces (tabs, zero-width space, etc)
+
+: grep -f ~/prods/books/manuscript-reference/weird-spaces.txt *.tex
+
+Also check tabs:
+
+: rg -e '\\t' ./manuscript/**/*.tex
+
+is your editor inserting tabs in quotes and multiline {} arguments like footnotes?
+some others might have been a conversion artifact from Word
+
+: rg -e '[{][^0-9\[\]]}[}]' ./manuscript/tex-pt/*.tex
+
+- remove bold -- probably a conversion artifact from Word
+  
+: como o ``\emph{\textbf{kalyāṇamitta''}} ou ``bom amigo''\footnote{``\emph{Kalyāṇa}''
+
+: rg textbf
+
+- remove thinspace shorthand =\,=
+
+: Veja o trecho ``\,'O mais lendário
+
+: Mas quanto tempo é ``razoável''\,'?
+: Mas quanto tempo é “razoável” ’?
+
+- quote marks outside of braces =``\emph{ācariya}''=
+
+#+begin_src fish
+# ``\emph{mitta''}
+sed -i "s/``\\\\emph[{]\\([^}]\\+\\)''[}]/``\\\\emph{\\1}''/g" *.tex
+
+# \emph{``mitta''}
+sed -i "s/\\\\emph[{]``\\([^}]\\+\\)''[}]/``\\\\emph{\\1}''/g" *.tex
+
+# \emph{``mitta}''
+sed -i "s/\\\\emph[{]``\\([^}]\\+\\)[}]''/``\\\\emph{\\1}''/g" *.tex
+#+end_src
+
+- thinspace
+
+#+begin_src fish
+# Follow thinspace with a space
+sed -i 's/\\\\thinspace */\\\\thinspace /g' *.tex
+#+end_src
+
+- fix straight quotes, double and single, at the beginning and ending of quotes
+
+#+begin_src fish
+# double quote after thinspace
+sed -i 's/\\\\thinspace "/\\\\thinspace \'\'/g' *.tex
+
+# closing double quotes followed by punctuation, but not \ as in ="\emph{}"=, but yes as in ="peace",= .
+sed -i 's/"\([.,:;!?]\)/\'\'\1/g' *.tex
+
+# opening double quotes at the beginning of the line
+sed -i 's/^"/``/' *.tex
+
+# closing double quotes at the end of the line
+sed -i 's/"$/\'\'/' *.tex
+
+# all remaining opening double
+sed -i 's/"\\b/``/' (find -iregex './[0-9].*\.tex')
+
+# all remaining closing double
+sed -i 's/\\b"/\'\'/' (find -iregex './[0-9].*\.tex')
+#+end_src
+
+Now single quotes, only need to fix opening mark to backtick:
+
+#+begin_src fish
+# opening single quotes at the beginning of the line
+sed -i 's/^\'/`/' *.tex
+
+# all remaining opening single, but not within words as in "don't"
+sed -i 's/\(\\W\)\'\(\\w\)/\1`\2/g' (find -iregex './[0-9].*\.tex')
+#+end_src
+
+- move quote mark out of braces =`\emph{Tudong'}=
+
+#+begin_src fish
+sed -i 's/\([{][^`}]\+\)\'[}]/\1}\'/g' (find -iregex './[0-9].*\.tex')
+#+end_src
+
+*** Sangha Words practices
+**** typos
+
+Check for classic typos
+
+: grep -f ./helpers/pali_typos ./manuscript/tex/*.tex
+
+**** [[~/org/notes/pali-spelling.md][Pali spelling]]
+*** review the front and back copyright pages
+*** grep and review TODO, FIXME, NOTE
+** send the PDF for proofing
+
+Send a preview PDF to the author and editors for proofing or text review.
+
+Create a Github repository and publish sources.
+
+Upload a preview PDF to Google Drive.
+
+Send an email with a link to the PDF.
+
+Possibly setup an editing copy on Overleaf.
+
+For annotations in the PDF, recommend PDF XChange editor:
+
+http://www.tracker-software.com/product/pdf-xchange-editor
+
+** create the cover
+
+Calculate the sizes:
+
+: spine width = (pages / 2) * 0.106 + 1mm
+
+136 pages, 8.2mm = 0.3228in
+
+Width: 5.25*2 + 0.3228in = 10.8228in = 274.89912mm
+
+Create a new work folder for the cover (pura-bondade_cover)
+
+Copy the background images to ./images
+
+Start a new single page file with Scribus
+
+- no margin
+- 3mm bleed
+
+Add two vertical guides to mark the back, spine and front parts:
+
+- 5.25in
+- 5.25 + 0.3228in
+
+** create the ebooks
+*** converting TeX to Asciidoc
+
+: ./helpers/chapters_to_asciidoc.sh
+
+It runs =tex_to_asciidoc.sh= on the numbered files in =manuscript/tex/[0-9][0-9]*.tex=.
+
+Additional =preface.tex= and other files have to be added manually there.
+
+=tex_to_asciidoc.sh= will check for LaTeX commands that are not recognized.
+
+If pandoc can convert it, add the command to =pandoc_known_latex=.
+
+Otherwise we have to convert it to some kind of canonical LaTeX which pandoc can
+then handle.
+
+Add replacement rules in =canonicalize_latex.sh= and add it to the list in =replace_known_latex=.
+
+Editing the LaTeX temporarily, or copy everything to a =tex_for_adoc= folder,
+for the conversion to pass, is also good. For example footnotes in headings are
+awkward in ebooks, it makes more sense to move the text of a =\chapterFootnote=
+to the end of the chapter, separated with a =\sectionBreak=. After the
+conversion, revert the =.tex= chapter.
+
+The conversion doesn't have to represent a perfect mapping of LaTeX to Asciidoc.
+It is just a step to establish the content of the ebooks.
+
+The conversion only has to complete once. Modifications (typos, etc.) later on
+are best to add by hand.
+
+*** creating the web PDF
+
+Web version cover must include image, not PDF
+
+*** testing the ebooks
+
+run epubcheck
+
+open with Sigil and F7
+
+*** photo conversions
+
+Don't transform to sRGB, because the slightly blueish CMYK will be bluish in
+the sRGB. Also, Gray does not become sRGB.
+
+Re-save them in GIMP instead, which will import the CMYK with applying the
+profile better, and the colors will be better grays.
+
+The -quality 90 will produce larger files than the 90 quality setting in GIMP.
+That's fine, GIMP can re-compress. Don't use -compress LossLess -quality 100,
+it can make the format unreadable for some jpeg libraries.
+
+Covert the photos:
+
+#+begin_src bash
+for i in photos/300dpi/*.jpg; do echo "$i"; convert "$i" -resize 600x800\> -compress jpeg -quality 90 ./photos/ebook-600x800-sRGB/`basename $i`; done
+#+end_src
+
+- rename to -sGRB.jpg with wdired
+- open it all in GIMP, re-export with settings: quality 90, 4x4x4 subsampling (best)
+- crop the Aj Chah front photo (sitting)
+- crop the Aj Chah back photo (smiling)
+- replace the illustration photos with the screenshot captures from the PDF in ebook-92dpi-sRGB
+- resize them to height 800px with GIMP
+- copy quotebreak.png
+- copy sectionbreak.png
+- copy webcover.jpg
+
+Check color spaces are all sRGB:
+
+#+begin_src bash
+for i in ./*.jpg; do echo -n "$i ... "; identify -format '%[colorspace]\n' $i; done
+#+end_src
+
+** final checks
+** submit to the archive
+
+upload to the FSP Archive
+
+* Digital Proof Checklist
+** Margins
+
+Look at the four edges of the paper. Check separately the first-, the middle-,
+and the last pages of the book, as the curve at the spine varies.
+
+Is the inner margin too close to the spine?
+
+Too close is when you can't read the content due to the curve.
+
+Is the outer-, top- and bottom margin too close to the edge of the paper?
+
+Safe distance is at least 3mm.
+
+** Text block position
+
+Flip through the pages of the book. The text block should maintain the same
+position, without horizontal or vertical jumps or rotation.
+
+This can be caused by mechanical error in the printing machine or layout errors
+in the PDF.
+
+** Text contrast
+
+Main body, chapter- and section headings, header and footer, horizontal rules.
+
+Text contrast should be easily readable.
+
+Strong should be black but not harsh, light should be distinct from strong but
+visible.
+
+The letter shapes shouldn't be breaking up at the thin joining shoulders.
+
+Contrast should be consistent in the beginning-, middle- and end of the book.
+
+Note that the black tones of the digital print are lower quality than the final
+offset print will be.
+
+** Cover
+
+Confirm that the cover is the right cover for the book.
+
+Check for white edges (unprinted, uncoloured) at the edge of the cover. This can
+be an artifact due to lack of bleed space.
+
+The spine color edge should line up with the thickness of the book.
+
+* Commands
+** Test for weird spaces
+
+In the [[https://github.com/profound-labs/manuscript-reference][manuscript-reference]] repo, =weird-spaces.txt= contains zero-width spaces, tabs and other unwanted whitespace. Check the =.tex= files after conversion with:
+
+: grep -f weird-spaces.txt ./manuscript/tex/*.tex
+
+** Punctuation with space?
+
+: rg ' [\.,;!\?]' manuscript/tex/**/*.tex
+
+** Check and remove leading and trailing whitespace
+
+Test:
+
+: grep -E '^\s+|\s+$' ./*.tex
+
+Remove leading and trailing whitespace:
+
+: sed -i -e 's/^\s\+//; s/\s\+$//;' ./*.tex
+
+** Is this chapter free flowing, or does it have spacing or pagebreaks?
+
+Find flow clontrol commands:
+
+: rg -e '\\vspace|\\bigskip|\\clearpage|\\enlargethispage|\\looseness|\\linebreak|\\newline|EDIT' 10-out-of-compassion.tex
+
+* Design sections of a book
+
+- Paper size
+- Page layout
+- web Cover
+- Title page
+- Copyright page
+- Colophon
+- Opening quote
+- namo tassa page
+- Dedication, Acknowledgement
+- Table of Contents
+  - intro, preface, etc.
+  - chapters
+  - appendix, glossary, index, endnotes
+- Chapter style
+  - chapter footnote (next to title)
+  - chapter author
+  - chapter note
+  - opening quote
+- Paragraphs
+- Sections
+- Anonymous divisions
+- Index
+- Glossary
+  - one column or two column
+  - alternative writing or language (Skt. prajna)
+  - see...
+  - see also...
+  - page number references
+- PDF page links
+- PDF TOC bookmarks
+- Footnotes
+- Endnotes
+- Licence permissions
+- For free distribution
+- About the author
 
