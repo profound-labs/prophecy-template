@@ -5,6 +5,7 @@ doc/*.html
 
 # Emacs temp files
 auto/
+.auctex-auto/
 *~
 \#*\#
 *.elc
