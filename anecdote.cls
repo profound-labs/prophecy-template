@@ -1667,10 +1667,16 @@ philo-sophical munindo amaravati thai-land}
 \setulmargins{42pt}{*}{*}% Based on Tall Pentagon, 1.701
 \setlength{\footskip}{30pt}
 
-% Fixes these warnings:
-%
-% Overfull \vbox (1.4pt too high) has occurred while \output is active
+% Adjust spacing to avoid warning
+% Class memoir Warning: The material used in the headers is too large (18.0pt) for the given head height (15.6pt),
 \addtolength{\headheight}{2pt}
+
+% Increase overfull and underfull tolerance to avoid too many warnings such as
+% Overfull \vbox (1.4pt too high) has occurred while \output is active
+% Underfull \hbox (badness 10000) in paragraph at lines 150--151
+\vfuzz=5pt
+\hfuzz=5pt
+\hbadness=10000
 
 % This will also typeout values in pt (default)
 \checkandfixthelayout
