@@ -36,6 +36,7 @@ doc/_minted-prophecy/
 .DS_Store
 .AppleDouble
 .LSOverride
+.idea
 
 # Other
 .sass-cache/
