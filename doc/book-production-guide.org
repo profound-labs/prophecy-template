@@ -89,6 +89,13 @@ In the most simple case:
 
 Use ~--extract-media=./images~ if needed.
 
+Remove the superfluous hyperref header identifiers:
+
+: \hypertarget{dedicauxe7uxe3o-do-autor}{%
+: \section{Dedicação do autor}\label{dedicauxe7uxe3o-do-autor}}
+
+: cat trav.docx.tex | perl -0777 -pe "s/\\\\hypertarget\{[^\}]*?\}\{%\n(\\\\.*?)\\\\label\{[^\}]*?\}\}/\1/gs" > trav.docx.tex.2
+
 More involved:
 
 : ./convert.sh
