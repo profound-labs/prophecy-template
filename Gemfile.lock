@@ -22,7 +22,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     mini_portile2 (2.3.0)
-    nokogiri (1.8.2)
+    nokogiri (1.8.5)
       mini_portile2 (~> 2.3.0)
     rubyzip (1.2.1)
     thread_safe (0.3.6)
