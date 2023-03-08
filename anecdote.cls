@@ -168,10 +168,10 @@
 \setmainfont[
   SmallCapsFont = Crimson-Roman.otf,
   SmallCapsFeatures= { Ligatures = TeX, Letters = SmallCaps, Scale = 0.8, LetterSpace = 0.2 },
-  ItalicFont = GentiumPlus-I.ttf,
-  BoldFont = GenBkBasB.ttf,
-  BoldItalicFont = GenBkBasBI.ttf,
-]{GentiumPlus-R.ttf}
+  ItalicFont = GentiumPlus-Italic.ttf,
+  BoldFont = GentiumPlus-Bold.ttf,
+  BoldItalicFont = GentiumPlus-BoldItalic.ttf,
+]{GentiumPlus-Regular.ttf}
 
 \newfontfamily\crimsonRomanFont[
   SmallCapsFeatures= { LetterSpace = 0.2 },
@@ -184,10 +184,10 @@
 ]{Crimson-Roman.otf}
 
 \newfontfamily\gentiumFont[
-  ItalicFont = GentiumPlus-I.ttf,
-  BoldFont = GenBkBasB.ttf,
-  BoldItalicFont = GenBkBasBI.ttf,
-]{GentiumPlus-R.ttf}
+  ItalicFont = GentiumPlus-Italic.ttf,
+  BoldFont = GentiumPlus-Bold.ttf,
+  BoldItalicFont = GentiumPlus-BoldItalic.ttf,
+]{GentiumPlus-Regular.ttf}
 
 % header and footer
 
