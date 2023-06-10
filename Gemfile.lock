@@ -15,15 +15,17 @@ PATH
   remote: vendor/gepub
   specs:
     gepub (0.7.1)
-      nokogiri (>= 1.8.2, < 1.9)
+      nokogiri (>= 1.8.2, < 1.16)
       rubyzip (>= 1.1.1)
 
 GEM
   remote: https://rubygems.org/
   specs:
-    mini_portile2 (2.3.0)
-    nokogiri (1.8.5)
-      mini_portile2 (~> 2.3.0)
+    mini_portile2 (2.8.2)
+    nokogiri (1.15.2)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
+    racc (1.7.0)
     rubyzip (2.0.0)
     thread_safe (0.3.6)
 
