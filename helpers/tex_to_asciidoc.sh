@@ -40,7 +40,7 @@ OUT_FILE="$OUT_DIR/$name.adoc"
     #cat -s | tee "$OUT_FILE.tex" |\
     # take attributes out of the comment hints
     perl -0777 -pe "s/% (<attr [^>]+>)\n/\n\1\n/gs" | \
-    pandoc -f latex -t asciidoc --atx-headers | \
+    pandoc -f latex -t asciidoc | \
     # move chapter id, title and subtitle to the top of the file
     perl -0777 -pe "s/^(.+?\n)(\[\[[^\n]+\]\]\n= [^\n]+\n)(\n*_[^_]+?_\n)?/\2\n\3\n\1/s" | \
     # brackets at the beginning of a line is the attribute markup,
@@ -66,8 +66,8 @@ OUT_FILE="$OUT_DIR/$name.adoc"
 # Check the output file.
 
 RES=""
-#RES="$RES"$(grep -E 'FIXME' "$OUT_FILE")
-#RES="$RES"$(grep -E "attr:<attribution=" "$OUT_FILE")
+RES="$RES"$(grep -E 'FIXME' "$OUT_FILE")
+RES="$RES"$(grep -E "attr:<attribution=" "$OUT_FILE")
 RES="$RES"$(grep -E "\`|'|’'" "$OUT_FILE")
 RES="$RES"$(grep -E '"' "$OUT_FILE")
 

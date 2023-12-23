@@ -36,8 +36,8 @@ perl -0777 -pe "s/\\\\chapterPhotoTwoPage\{(.*?)\}\{.*?\}\{.*?\}\{.*?\}/\\\\incl
 perl -0777 -pe "s/\\\\chapterPhotoInlinePortrait\{.*?\}\{(.*?)\}/\\\\includegraphics{\1}/gs" | \
 perl -0777 -pe "s/\\\\chapterPhotoInlineLandscape\{(.*?)\}/\\\\includegraphics{\1}/gs" | \
 perl -0777 -pe "s/\\\\includegraphics[[][^]]+[]]\{.*?\}//gs" | \
-perl -0777 -pe "s/\\\\verseRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
-perl -0777 -pe "s/\\\\quoteRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
+# perl -0777 -pe "s/\\\\verseRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
+# perl -0777 -pe "s/\\\\quoteRef\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
 perl -0777 -pe "s/\\\\quoteRefInline\{(.*?)\}/\n\\\\emph{\1}% <attr attribution=\1>\n/gs" | \
 perl -0777 -pe "s/\\\\quoteTitleFmt\{(.*?)\}/\\\\emph{\1}/gs" | \
 perl -0777 -pe "s/\\\\thai\{(.*?)\}/\1/gs" | \
@@ -63,4 +63,12 @@ sed 's/\\linewidth//g' |\
 sed 's/\\Large//g' |\
 sed 's/\\sectionBreak/\n\n<* * * * *>\n\n/g' |\
 sed 's/\\quoteBreak/\n\n<* * *>\n\n/g' |\
+sed 's/\\verseRef[{]/\\emph{/g' |\
+sed 's/\\quoteRef[{]/\\emph{/g' |\
+sed 's/\\pagenote[{]/\\footnote{/g' |\
+sed 's/\\subSectionFont//g' |\
+sed 's/\\selectfont//g' |\
+sed 's/\\printpagenotes\**//' |\
+sed 's/\\kern[-0-9\. ]\+pt//' |\
+sed 's/\\section[[][^]]\+[]]/\\section/g' |\
 perl -0777 -pe "s/\{[\s\%]+\}//gs"

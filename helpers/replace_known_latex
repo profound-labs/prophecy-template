@@ -19,7 +19,7 @@
 \\verseRef[{]
 \\quoteRef[{]
 \\quoteRefInline[{]
-^\\vspace\**[{][^}]\+[}]\%*$
+^\\vspace\**[{][^}]\+[}]%*$
 \\thai[{]
 \\textup[{]
 \\label[{]
@@ -47,3 +47,9 @@
 \\Large
 \\quoteTitleFmt
 \\definecolor
+\\pagenote[{]
+\\subSectionFont
+\\selectfont
+\\printpagenotes\**
+\\kern[-0-9\. ]\+pt
+\\section[[][^]]\+[]][{]
