@@ -40,7 +40,13 @@ OUT_FILE="$OUT_DIR/$name.adoc"
     #cat -s | tee "$OUT_FILE.tex" |\
     # take attributes out of the comment hints
     perl -0777 -pe "s/% (<attr [^>]+>)\n/\n\1\n/gs" | \
-    pandoc -f latex -t asciidoc | \
+    # convert latex quotes
+    sed -e "s/\`\`\([[:alnum:][:punct:]]\)/“\1/g; s/\([[:alnum:][:punct:]]\)''/\1”/g;" | \
+    sed -e "s/\`\([[:alnum:][:punct:]]\)/‘\1/g; s/\([[:alnum:][:punct:]]\)'/\1’/g;" | \
+    pandoc -f latex+smart -t asciidoc | \
+    # convert asciidoc quotes
+    sed -e 's/"`/“/g; s/`"/”/g;' | \
+    sed -e "s/'\`/‘/g; s/\`'/’/g;" | \
     # move chapter id, title and subtitle to the top of the file
     perl -0777 -pe "s/^(.+?\n)(\[\[[^\n]+\]\]\n= [^\n]+\n)(\n*_[^_]+?_\n)?/\2\n\3\n\1/s" | \
     # brackets at the beginning of a line is the attribute markup,
@@ -58,9 +64,6 @@ OUT_FILE="$OUT_DIR/$name.adoc"
     sed 's/<\* \* \*>/image::quotebreak.png[]/g' | \
     # section breaks
     sed 's/<\* \* \* \* \*>/image::sectionbreak.png[]/g' | \
-    # convert latex quotes
-    sed -e "s/\`\`\([[:alnum:][:punct:]]\)/“\1/g; s/\([[:alnum:][:punct:]]\)''/\1”/g;" | \
-    sed -e   "s/\`\([[:alnum:][:punct:]]\)/‘\1/g; s/\([[:alnum:][:punct:]]\)'/\1’/g;" | \
     cat -s > "$OUT_FILE"
 
 # Check the output file.
