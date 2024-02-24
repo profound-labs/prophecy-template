@@ -1358,6 +1358,18 @@ p.subtitle {
 .blockquote.quote-plain blockquote em {
   font-style: italic;
 }
+.blockquote.quote-center {
+  display: block;
+}
+.blockquote.quote-center blockquote {
+  font-style: italic;
+}
+.blockquote.quote-center blockquote em {
+  font-style: normal;
+}
+.blockquote.quote-center blockquote p {
+  text-align: center;
+}
 .top-anchor {
   font-size: 0pt;
   line-height: 0;
@@ -1387,6 +1399,12 @@ figure.image.quotebreak img {
 }
 .blockquote.sidebar-quote > blockquote:first-child p {
   margin-top: 0pt;
+}
+h2 {
+  margin-top: 2.5em;
+}
+.chapter-subtitle {
+  padding-left: 2em;
 }
 body.calibre-viewer-dark-colors {
   background-color: transparent;

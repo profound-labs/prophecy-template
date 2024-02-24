@@ -518,6 +518,29 @@ Vertical center:
 - spacing - par skips, section skips
 - texture - justification gaps, rivers, holes
 
+**** Accents
+
+When a typeface is lacking the accented form of a character, combining marks can be used instead of the unicode character.
+
+: di\d{t}\d{t}hi
+: sa\.{n}khāra
+: sa\.{m}yojana
+
+[[https://abel.math.harvard.edu/computing/latex/tetex/latex/latex2e-html/ltx-401.html][LaTeX Accents]]
+
+[[https://en.wikibooks.org/wiki/LaTeX/Special_Characters][LaTeX/Special Characters - Wikibooks]]
+
+**** LaTeX quote marks to Unicode
+
+: sed -i 's/``/“/g' *.tex
+: sed -i "s/''/”/g" *.tex
+
+: sed -i 's/`/‘/g' *.tex
+: sed -i "s/'$/’/g" *.tex
+: sed -i "s/'\([ [:punct:]\}\\]\)/’\1/g;" *.tex
+
+*NOTE:* Some shells will need the =\= to be escaped in the sed pattern (e.g. =\\(= and =\\)=), such as in nushell.
+
 **** hyphenation
 
 Portuguese have repeating hyphen. Add ="-= in the manuscript and enable it in the class:
