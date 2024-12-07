@@ -466,19 +466,14 @@ philo-sophical munindo amaravati thai-land}
 }
 
 \newcounter{pageRem}
-\newcounter{origPage}
 
-% Add empty pages for a total page count divisible by 8 without remainder.
-\newcommand{\emptyUntilModEight}{%
-  \setcounter{origPage}{\theCurrentPage}%
-  \setcounter{pageRem}{1 + 8 - ( \theCurrentPage - ( ( \theCurrentPage / 8 ) * 8) )}%
-  %\typeout{hey: \theCurrentPage, \theorigPage, \thepageRem}% NOTE only for debugging
+% Add empty pages for a total page count divisible by N without remainder.
+\newcommand{\emptyUntilDivisibleBy}[1]{%
+  \setcounter{pageRem}{1 + #1 - ( \thepage - ( ( \thepage / #1 ) * #1) )}%
   \loop%
-    \addtocounter{pageRem}{-1}%
+  \addtocounter{pageRem}{-1}%
   \ifnum\thepageRem>0%
-    \clearpage%
-    \thispagestyle{empty}\mbox{}%
-    %hey \theorigPage \space \thepageRem% NOTE only for debugging
+  \clearpage\thispagestyle{empty}\null%
   \repeat%
 }
 
