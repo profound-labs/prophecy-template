@@ -1674,6 +1674,7 @@ philo-sophical munindo amaravati thai-land}
 \settypeblocksize{193mm}{110mm}{*}
 \setlrmargins{*}{20mm}{*}
 
+% 42pt was too narrow when printed with Blurb.
 \setulmargins{48pt}{*}{*}% ~17mm, Based on Tall Pentagon, 1.701
 \setheaderspaces{*}{19pt}{*}
 \setlength{\footskip}{30pt}
