@@ -354,7 +354,7 @@ Find Thai and wrap it in ~\thai{}~ to set the appropriate font.
 
 Find weird whitespace.
 
-: grep -f ~/prods/weird-spaces ./*.tex
+: grep -f ~/prods/books/manuscript-reference/weird-spaces.txt ./*.tex
 
 Find triple full stops instead of ellipses.
 

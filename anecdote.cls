@@ -32,6 +32,9 @@
 \newif\ifoverleaf
 \overleaffalse
 
+\newif\ifprintondemand
+\printondemandfalse
+
 % =======
 % Options
 % =======
@@ -45,6 +48,7 @@
   babelLanguage/.store in=\BOOK@babelLanguage,
   desktopVersion/.code=\desktopversiontrue,
   overleaf/.code=\overleaftrue,
+  printOnDemand/.code=\printondemandtrue,
 }
 
 % Pass all unknown options to memoir
@@ -139,7 +143,7 @@
 % === Define colors ===
 
 % Define text colors as Gray color values.
-\definecolor{textbody}{gray}{0.05}% 95% is good for contrast, on yellowish paper it is not harsh.
+\definecolor{textbody}{gray}{0}% 100% is needed for good contrast with Blurb printing.
 \definecolor{footnoterule}{gray}{0.5}
 \definecolor{header}{gray}{0.2}
 \definecolor{footer}{gray}{0.2}
@@ -246,8 +250,9 @@
 
 % === hyperref ===
 
-\RequirePackage{hyperxmp}
 \RequirePackage{hyperref}
+% hyperref must be loaded before hyperxmp
+\RequirePackage{hyperxmp}
 
 % https://tex.stackexchange.com/questions/32076/incorrect-toc-index-cross-references-when-resetting-memoir-class-counters
 % hypertexnames=true
@@ -1645,10 +1650,20 @@ philo-sophical munindo amaravati thai-land}
   \quarkmarks
   \settrims{0.5\stockheight - 0.5\paperheight}{0.5\stockwidth - 0.5\paperwidth}
   \settrimmedsize{\BOOK@paperHeight}{\BOOK@paperWidth}{*}
-\else\relax
-  \setstocksize{\BOOK@paperHeight}{\BOOK@paperWidth}
-  \settrimmedsize{\stockheight}{\stockwidth}{*}
-  \settrims{0pt}{0pt}
+\else
+  \ifprintondemand
+    % 6.125 in x 9.250 in
+    \stockheight=9.25in
+    \stockwidth=6.125in
+    \setlength{\paperheight}{\BOOK@paperHeight}
+    \setlength{\paperwidth}{\BOOK@paperWidth}
+    \settrims{0.5\stockheight - 0.5\paperheight}{0.5\stockwidth - 0.5\paperwidth}
+    \settrimmedsize{\BOOK@paperHeight}{\BOOK@paperWidth}{*}
+  \else\relax
+    \setstocksize{\BOOK@paperHeight}{\BOOK@paperWidth}
+    \settrimmedsize{\stockheight}{\stockwidth}{*}
+    \settrims{0pt}{0pt}
+  \fi
 \fi
 
 % Text block for 10.5 / 15pt:
@@ -1656,10 +1671,11 @@ philo-sophical munindo amaravati thai-land}
 %\settypeblocksize{34\baselineskip + \topskip}{*}{0.599}% 1/1.667, 3:5, major 6th
 %\setlrmargins{*}{20mm}{*}% 22.71669mm and 19.99976mm
 
-\settypeblocksize{190mm}{110mm}{*}
+\settypeblocksize{193mm}{110mm}{*}
 \setlrmargins{*}{20mm}{*}
 
-\setulmargins{42pt}{*}{*}% Based on Tall Pentagon, 1.701
+\setulmargins{48pt}{*}{*}% ~17mm, Based on Tall Pentagon, 1.701
+\setheaderspaces{*}{19pt}{*}
 \setlength{\footskip}{30pt}
 
 % Adjust spacing to avoid warning
