@@ -435,6 +435,48 @@ Portuguese uses repeating hyphen. Babel allows this with ~"-~, as in ~tornar"-se
 
 : sed -i 's/\([[:alpha:]][^"]\)\(-[[:alpha:]]\)/\1"\2/g' introduction.tex
 
+** English Title Case
+
+Title Case format means that the first letter of each word is capitalized, except for certain small words, such as articles and short prepositions.
+
+All English language album title and track titles must be in Title Case format per music store guidelines.
+
+The following words must be in lower case, with a few exceptions:
+
+a, an, and, as, but, for, from, nor, of, or, so, the, to, and yet.
+
+Prepositions of four letters or fewer (at, by, for, from, in, into, of off, on, onto, out over, to, up, and with), except when the word is part of a verb phrase or is used as another part of speech (such as an adverb, adjective, noun, or verb).
+
+Always capitalize the first and last word in a title. Capitalize the first and last word in parenthesis or bracket.
+
+Uppercase Words in Title Case:
+
+Are, If, Is, It, Than, That, This
+
+[[https://support.catapultdistribution.com/hc/en-us/articles/360056473252-What-Is-Title-Case-Format-as-It-Relates-to-Album-and-Track-Titles][What Is Title Case Format as It Relates to Album and Track Titles? – Catapult Support]]
+
+** Portuguese Title Case
+
+The following Spanish words should always be in lowercase (if title casing is used, these are also the only words that should be lowercase):
+
+| a   | e  | las  | por |
+| al  | el | los  | un  |
+| de  | en | o    | una |
+| del | la | para | y   |
+
+The following Portuguese words should always be in lowercase (if title casing is used, these are also the only words that should be lowercase):
+
+| a    | das | nas | pela  |
+| à    | de  | no  | pelas |
+| ao   | do  | nos | pelo  |
+| aos  | dos | o   | pelos |
+| as   | e   | os  | por   |
+| pra  | pro | às  | em    |
+| ou   | um  | da  | na    |
+| para | uma |     |       |
+
+[[https://support.catapultdistribution.com/hc/en-us/articles/360056473472-Spanish-and-Portuguese-Casing-for-Titles][Spanish and Portuguese Casing for Titles – Catapult Support]]
+
 ** add the graphics
 
 - image inserts
