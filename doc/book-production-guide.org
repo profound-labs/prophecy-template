@@ -834,6 +834,44 @@ for i in ./*.jpg; do echo -n "$i ... "; identify -format '%[colorspace]\n' $i; d
 
 upload to the FSP Archive
 
+* Print-On-Demand
+** Cover sizes
+
+Size calculator: https://www.blurb.com/make/pdf_to_book/booksize_calculator
+
+- Cover: Softcover
+- Paper: Standard Trade BW
+- Units: Points
+
+Pages must be multiple of 6, or blanks will be inserted by blurb.
+
+| Part | Pages | Width (pt) | Height |
+|------+-------+------------+--------|
+|   1. |   420 |        944 |    666 |
+|   2. |   432 |        946 |    666 |
+
+: 6in = 152.40 mm = 432 pt
+: 9in = 228.60 mm = 648 pt
+: 3mm = 8.5039370079 pt
+: 6mm = 17.007874016 pt
+
+For the cover spread, front an back cover sizes: =441 x 666 pt=
+- 3mm bleed on the width (one side touches the spine)
+- 6mm bleed on height
+
+** Specs
+
+Trade 6x9 inches (15x23 cm)
+
+Cover: Softcover
+- Flexible, high-gloss laminated cover
+
+Paper:
+- matte finish
+- Economy Trade B&W Paper, White
+
+The maximum total page count is 480
+
 * Digital Proof Checklist
 ** Margins
 
