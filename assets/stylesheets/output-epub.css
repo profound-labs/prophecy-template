@@ -1,0 +1,233 @@
+/* body */
+/*   font-family: 'Open Sans X', sans-serif */
+/* h1, h2, h3, h4 */
+/*   font-family: 'Nunito Sans X', sans-serif */
+/*   text-align: left */
+h1 {
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 1pt;
+  word-spacing: 2pt;
+  text-align: center;
+}
+
+blockquote {
+  background: none;
+  border: none;
+}
+blockquote p {
+  text-align: left;
+  text-indent: 0;
+  margin: 1em 0;
+  padding: 0;
+  font-style: normal;
+}
+blockquote p em {
+  font-style: italic;
+}
+
+.opening-quote blockquote p {
+  text-align: center;
+}
+
+.opening-image p {
+  text-align: center;
+}
+
+span.vin {
+  display: inline-block;
+  width: 2em;
+}
+
+.titlepage-cover {
+  margin-top: 2em;
+}
+.titlepage-cover h1 {
+  text-align: center;
+  margin-top: 1em;
+}
+.titlepage-cover h2 {
+  font-weight: normal;
+  text-align: center;
+}
+.titlepage-cover img {
+  width: 300px;
+}
+
+.download-item {
+  margin-top: 1em;
+}
+.download-item .item-description h3 {
+  margin-top: 0.5em;
+}
+.download-item .item-cover img {
+  width: 100%;
+}
+
+.caption {
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.opening-illustration {
+  float: right;
+  margin: 10px 0px 10px 10px;
+  width: 50%;
+}
+
+.opening-page {
+  text-align: center;
+}
+.opening-page img {
+  margin: 0 auto;
+}
+
+.illustration {
+  margin: 10px auto;
+  width: 60%;
+}
+
+.sutta > blockquote {
+  border-left: 2px solid #8c8c8c;
+  padding-left: 1em;
+}
+
+.note {
+  clear: both;
+  padding: 10px;
+  border-top: 2px solid #8c8c8c;
+}
+.note span.caption {
+  padding: 0px 20px;
+  font-style: normal;
+}
+
+.list-none ul, .list-none ol {
+  list-style-type: none;
+}
+.list-none ul li > p > strong:first-child, .list-none ol li > p > strong:first-child {
+  font-weight: normal;
+  margin-left: -1.3em;
+}
+.list-none ul li > strong:first-child, .list-none ol li > strong:first-child {
+  font-weight: normal;
+  margin-left: -1.3em;
+}
+
+.list-upper-alpha ol {
+  list-style-type: upper-alpha;
+}
+
+.list-decimal ol {
+  list-style-type: decimal;
+}
+
+ol {
+  list-style-type: decimal;
+}
+ol ol {
+  list-style-type: upper-alpha;
+}
+ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.figure {
+  margin: 1em 2em;
+}
+.figure img {
+  display: block;
+  object-fit: scale-down;
+  width: auto;
+  max-width: 100%;
+}
+
+html.light .note {
+  background-color: #eee;
+}
+
+html.rust .note {
+  background-color: #c8c8c8;
+}
+
+html.coal .note,
+html.navy .note,
+html.ayu .note {
+  background-color: #000;
+}
+
+.footnote-section-separator {
+  font-size: 1.8em;
+  margin-top: 1em;
+  text-align: center;
+}
+
+.noteref {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.dedication-text blockquote p,
+.anumodana-text blockquote p {
+  text-align: center;
+}
+
+.dedication-text blockquote {
+  margin: 20px auto 4em auto;
+}
+
+.anumodana-text blockquote {
+  max-width: 37em;
+  margin: 4em auto 20px auto;
+}
+
+.top-anchor {
+  font-size: 0pt;
+  line-height: 0;
+  margin: 0pt;
+  padding: 0pt;
+}
+
+/* @font-face */
+/*   font-family: 'Nunito Sans X' */
+/*   font-style: normal */
+/*   font-weight: 400 */
+/*   font-display: swap */
+/*   src: url('assets/fonts/NunitoSansX-Regular.ttf') format('truetype') */
+/* @font-face */
+/*   font-family: 'Nunito Sans X' */
+/*   font-style: italic */
+/*   font-weight: 400 */
+/*   font-display: swap */
+/*   src: url('assets/fonts/NunitoSansX-Italic.ttf') format('truetype') */
+/* @font-face */
+/*   font-family: 'Nunito Sans X' */
+/*   font-style: normal */
+/*   font-weight: 700 */
+/*   font-display: swap */
+/*   src: url('assets/fonts/NunitoSansX-Bold.ttf') format('truetype') */
+/* @font-face */
+/*   font-family: 'Open Sans X' */
+/*   font-style: normal */
+/*   font-weight: 400 */
+/*   font-display: swap */
+/*   src: url('assets/fonts/OpenSansX-Regular.ttf') format('truetype') */
+h1 {
+  font-size: 1.5em;
+}
+
+h2 {
+  font-size: 1.3em;
+}
+
+#toc ol li {
+  list-style-type: none;
+}
+
+body {
+  line-height: 1.7;
+}
+
+.footnote-definition-label {
+  font-weight: bold;
+}

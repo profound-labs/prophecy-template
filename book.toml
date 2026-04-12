@@ -1,0 +1,22 @@
+[book]
+title = "The Book"
+authors = ["The Author"]
+language = "en"
+multilingual = false
+src = "manuscript/markdown"
+
+[build]
+build-dir = "gh-pages"
+create-missing = true
+
+[output.html]
+additional-css = ["assets/stylesheets/output-html.css"]
+smart-punctuation = true
+footnote-backrefs = true
+no-section-label = true
+site-url = ""
+
+[output.html.fold]
+enable = true
+level = 2
+

@@ -1,0 +1,258 @@
+@import url("https://fonts.googleapis.com/css?family=Nunito+Sans:400,400i,700&display=swap&subset=latin-ext");
+/* body */
+/*   font-family: 'Open Sans X', sans-serif */
+/* h1, h2, h3, h4 */
+/*   font-family: 'Nunito Sans X', sans-serif */
+/*   text-align: left */
+h1 {
+  font-weight: normal;
+  text-transform: uppercase;
+  letter-spacing: 1pt;
+  word-spacing: 2pt;
+  text-align: center;
+}
+
+blockquote {
+  background: none;
+  border: none;
+}
+blockquote p {
+  text-align: left;
+  text-indent: 0;
+  margin: 1em 0;
+  padding: 0;
+  font-style: normal;
+}
+blockquote p em {
+  font-style: italic;
+}
+
+.opening-quote blockquote p {
+  text-align: center;
+}
+
+.opening-image p {
+  text-align: center;
+}
+
+span.vin {
+  display: inline-block;
+  width: 2em;
+}
+
+.titlepage-cover {
+  margin-top: 2em;
+}
+.titlepage-cover h1 {
+  text-align: center;
+  margin-top: 1em;
+}
+.titlepage-cover h2 {
+  font-weight: normal;
+  text-align: center;
+}
+.titlepage-cover img {
+  width: 300px;
+}
+
+.download-item {
+  margin-top: 1em;
+}
+.download-item .item-description h3 {
+  margin-top: 0.5em;
+}
+.download-item .item-cover img {
+  width: 100%;
+}
+
+.caption {
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.opening-illustration {
+  float: right;
+  margin: 10px 0px 10px 10px;
+  width: 50%;
+}
+
+.opening-page {
+  text-align: center;
+}
+.opening-page img {
+  margin: 0 auto;
+}
+
+.illustration {
+  margin: 10px auto;
+  width: 60%;
+}
+
+.sutta > blockquote {
+  border-left: 2px solid #8c8c8c;
+  padding-left: 1em;
+}
+
+.note {
+  clear: both;
+  padding: 10px;
+  border-top: 2px solid #8c8c8c;
+}
+.note span.caption {
+  padding: 0px 20px;
+  font-style: normal;
+}
+
+.list-none ul, .list-none ol {
+  list-style-type: none;
+}
+.list-none ul li > p > strong:first-child, .list-none ol li > p > strong:first-child {
+  font-weight: normal;
+  margin-left: -1.3em;
+}
+.list-none ul li > strong:first-child, .list-none ol li > strong:first-child {
+  font-weight: normal;
+  margin-left: -1.3em;
+}
+
+.list-upper-alpha ol {
+  list-style-type: upper-alpha;
+}
+
+.list-decimal ol {
+  list-style-type: decimal;
+}
+
+ol {
+  list-style-type: decimal;
+}
+ol ol {
+  list-style-type: upper-alpha;
+}
+ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.figure {
+  margin: 1em 2em;
+}
+.figure img {
+  display: block;
+  object-fit: scale-down;
+  width: auto;
+  max-width: 100%;
+}
+
+html.light .note {
+  background-color: #eee;
+}
+
+html.rust .note {
+  background-color: #c8c8c8;
+}
+
+html.coal .note,
+html.navy .note,
+html.ayu .note {
+  background-color: #000;
+}
+
+.footnote-section-separator {
+  font-size: 1.8em;
+  margin-top: 1em;
+  text-align: center;
+}
+
+.noteref {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.dedication-text blockquote p,
+.anumodana-text blockquote p {
+  text-align: center;
+}
+
+.dedication-text blockquote {
+  margin: 20px auto 4em auto;
+}
+
+.anumodana-text blockquote {
+  max-width: 37em;
+  margin: 4em auto 20px auto;
+}
+
+.top-anchor {
+  font-size: 0pt;
+  line-height: 0;
+  margin: 0pt;
+  padding: 0pt;
+}
+
+.grid {
+  margin: 0 0 20px 0;
+}
+.grid:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+.grid *, .grid *:after, .grid *:before {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+.grid [class*=col-] {
+  float: left;
+  padding-right: 20px;
+}
+.grid .grid [class*=col-]:last-of-type {
+  padding-right: 0;
+}
+.grid .col-2-3 {
+  width: 66.66%;
+}
+.grid .col-1-3 {
+  width: 33.33%;
+}
+.grid .col-1-2 {
+  width: 50%;
+}
+.grid .col-1-4 {
+  width: 25%;
+}
+.grid .col-1-8 {
+  width: 12.5%;
+}
+.grid {
+  /* Opt-in outside padding */
+}
+.grid .grid-pad {
+  padding: 20px 0 20px 20px;
+}
+.grid .grid-pad [class*=col-]:last-of-type {
+  padding-right: 20px;
+}
+
+@font-face {
+  font-family: "Open Sans X";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local("Open Sans X Regular"), local("OpenSansX-Regular"), url("../fonts/OpenSansX-Regular.woff2") format("woff2"), url("../fonts/OpenSansX-Regular.woff") format("woff");
+}
+body {
+  font-size: 1.6rem;
+  line-height: 1.7;
+}
+
+.content h1 .header:link {
+  color: hsl(0, 0%, 30%);
+}
+
+#menu-bar {
+  position: inherit;
+}
+#menu-bar .menu-title {
+  text-transform: none;
+}
