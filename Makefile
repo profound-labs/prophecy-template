@@ -1,11 +1,23 @@
 FILE=main
 
-LATEX=lualatex
+LATEX=latexmk
 BIBTEX=bibtex
 
-LATEX_OPTS=-interaction=nonstopmode -halt-on-error
+LATEX_OPTS=-interaction=nonstopmode -halt-on-error -lualatex
 
 all: document
+
+dist:
+	./helpers/dist.sh
+
+serve:
+	python3 -m http.server -d gh-pages/ 5000
+
+ebooks:
+	./helpers/ebooks.sh
+
+pdf-to-ebooks-docs: document
+	cp main.pdf manuscript/markdown/assets/docs/The-Book.pdf
 
 four-times:
 	./helpers/four-times.sh
@@ -13,29 +25,14 @@ four-times:
 document:
 	$(LATEX) $(LATEX_OPTS) $(FILE).tex
 
-html:
-	asciidoctor -D output stillness-flowing.adoc
-
-epub:
-	./helpers/generate_epub.sh $(FILE)
-
-epub-validate:
-	EPUBCHECK=~/bin/epubcheck asciidoctor-epub3 -D output -a ebook-validate main.adoc
-
-mobi:
-	./helpers/generate_mobi.sh $(FILE)
-
 preview:
 	latexmk -pvc $(FILE).tex
 
-chapters-to-asciidoc:
-	./helpers/chapters_to_asciidoc.sh
+sass:
+	sass --no-source-map ./assets/sass:./assets/stylesheets
 
-chapters-to-docx:
-	./helpers/chapters_to_docx.sh
-
-stylus-watch:
-	stylus -w ./vendor/asciidoctor-epub3/assets/styles/*.styl -o ./vendor/asciidoctor-epub3/data/styles/
+sass-watch:
+	sass --watch --no-source-map ./assets/sass:./assets/stylesheets
 
 dist-html:
 	cp doc/*.html ../prophecy-template-html && cp -r doc/images/*.jpg ../prophecy-template-html/images/
