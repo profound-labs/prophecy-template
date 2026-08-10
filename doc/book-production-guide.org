@@ -588,7 +588,28 @@ When a typeface is lacking the accented form of a character, combining marks can
 Portuguese have repeating hyphen. Add ="-= in the manuscript and enable it in the class:
 
 : cd manuscript/tex
+
+#+begin_src 
+libertar"-nos
+torna"-se
+não"-eu
+#+end_src
+
 : sed -i 's/\(\w\w\)-\(\w\w\)/\1"-\2/g' ./*.tex
+
+#+begin_src 
+ligando"-o
+#+end_src
+
+: sed -i 's/\(\w\w\+\)-\(\w\)\b/\1"-\2/g' ./*.tex
+
+#+begin_src bash
+echo "ligando-o ligando-se torna-se ajahn-sumedho image-001-aj" | \
+  sed 's/\(\w\w\+\)-\(\w\)\b/\1"-\2/g'
+#+end_src
+
+#+RESULTS:
+: ligando"-o ligando-se torna-se ajahn-sumedho image-001-aj
 
 Review with =meld=:
 
@@ -871,7 +892,6 @@ Paper:
 - Economy Trade B&W Paper, White
 
 The maximum total page count is 480
-
 * Digital Proof Checklist
 ** Margins
 
@@ -983,4 +1003,120 @@ Find flow clontrol commands:
 - Licence permissions
 - For free distribution
 - About the author
+* Editing Setup
+** TeXLive
+
+[[mu4e:msgid:878q9u45yl.fsf@sumedharama.pt][chanting book]]
+
+** Git and Github
+
+https://chocolatey.org/install
+
+Open a Powershell terminal:
+
+With PowerShell, you must ensure [[https://go.microsoft.com/fwlink/?LinkID=135170][Get-ExecutionPolicy]] is not Restricted. We suggest using =Bypass= to bypass the policy to get things installed or =AllSigned= for quite a bit more security.
+
+Run =Get-ExecutionPolicy=.
+If it returns =Restricted=,
+then run =Set-ExecutionPolicy AllSigned= 
+or =Set-ExecutionPolicy Bypass -Scope Process=.
+
+Now run the following command:
+
+#+begin_src powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+#+end_src
+
+: $ choco install git
+: $ choco install ripgrep
+
+[[mu4e:msgid:874ikdruak.fsf@sumedharama.pt][Re: chanting book]]
+
+: git config --global user.name "Gambhiro Bhikkhu"
+
+Use the git username, not your real email (for me it would be gambhiro@users.noreply.github.com):
+
+: git config --global user.email ...@users.noreply.github.com
+
+(this is an anonymous github user email format which protects your real one)
+
+The global config is in =~/.gitconfig=
+
+: ls -al ~/.ssh
+: ssh-keygen -t ed25519 -C "...@users.noreply.github.com"
+
+You can use use the the github anonymous user email, -C ... is just a comment, it has no functional effect on how the key works or authenticates.
+
+: cat ~/.ssh/id_ed25519.pub
+
+Add the public (.pub) key’s content in:
+
+- Github profile > Settings > Access section > SSH and GPG keys
+
+** VS Code
+
+https://code.visualstudio.com/download
+
+https://github.com/mathematic-inc/vscode-latex.git
+- lints with chktex
+https://github.com/James-Yu/LaTeX-Workshop.git
+- compile and preview
+- build settings in project .vscode folder
+
+Settings: Ctrl + ,
+Files: Ctrl + P
+Command palette: Ctrl + Shift + P
+
+Problems: Ctrl + Shift + M
+Right click, disable rule
+
+Source to PDF: Ctrl + Alt + J (Ctrl + Shift + P, SyncTex from Cursor)
+PDF to Source: Ctrl + click
+
+https://github.com/ltex-plus/vscode-ltex-plus.git
+- grammar check with languagetool
+
+https://github.com/FanaticPythoner/better-todo-tree.git
+- uses ripgrep
+
+https://marketplace.visualstudio.com/items?itemName=Continue.continue
+https://github.com/continuedev/continue
+
+https://aistudio.google.com/api-keys
+Create an API key
+
+Open Continue from sidebar,
+Model > API Keys > Gemini > click Connect
+
+Writes to .continue/config.yaml
+
+Configure > Prompts > New
+
+.continue/prompts/reescreve.md
+
+#+begin_src markdown
+---
+name: Reescreve
+description: Reescreve
+invokable: true
+---
+
+És revisor de texto para o português europeu.
+Reescreve a passagem, mantendo o estilo original.
+#+end_src
+
+Select text > Ctrl + Shift + L (Add to Chat)
+Use Agent mode
+/reescreve
+will suggest the alternative
+
+** TeXStudio
+
+- xelatex or lualatex with latexmk
+- recompile on save
+- Set Editor font to Gentium
+- Structure: main.tex > Set as explicit root, Compile with F6
+- Options > Root Document > Set Current as Root (Explicit: main.tex)
+- Internal PDF: Auto recompile on changes
+
 
